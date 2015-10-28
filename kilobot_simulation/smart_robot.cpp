@@ -12,10 +12,10 @@
 class smart_robot : public robot
 {
 
-	int disks = 1;
+	int disks = 2;
 	int disks_size[2] = { 5, 7 };
-	int disks_center_x[2] = { 800, 2500 };
-	int disks_center_y[2] = { 800, 3600 };
+	int disks_center_x[2] = { 3800, 1500 };
+	int disks_center_y[2] = { 3800, 3600 };
 	int closest_disk = -1;
 	//smart robots turn in place, walk straight, have gps and compass 
 	//smart robot variables
@@ -97,9 +97,7 @@ class smart_robot : public robot
 	}
 	void robot::init_robot()
 	{
-		motor_error = 0; //yes I'm cheating and I like it!
 	}
-
 
 	double distance(int x1, int y1, int x2, int y2)
 	{

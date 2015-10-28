@@ -12,7 +12,7 @@ using namespace std;
 #define windowWidth 500 //display window
 #define windowHeight 500 //display window
 #define comm_range 100 //communication range between robots
-#define num_robots 1000 //number of robots running
+#define num_robots 3000 //number of robots running
 #define num_smart_robots 2 //number of robots running
 #define comm_noise_std 5 //standard dev. of sensor noise
 #define PI 3.14159265358979324
@@ -61,14 +61,21 @@ int find_collisions(int id, double x, double y)
 	double two_r = 2 * radius;
 	int i;
 	if (x <= radius || x >= arena_width-radius || y <= radius || y >= arena_height-radius) return 1;
+	double x_ulim = x + two_r;
+	double x_llim = x - two_r;
+	double y_ulim = y + two_r;
+	double y_llim = y - two_r;
 	for (i = 0;i < num_robots;i++)
 	{
 		if (i != id)
 		{
-			double dist_x = x - robots[i]->pos[0];
-			double dist_y = y - robots[i]->pos[1];
-			if (dist_x>-two_r  && dist_x<two_r  && dist_y<two_r && dist_y>-two_r) //if not in the sqare limits, i dont even check the circular ones
+
+			if (x_ulim>robots[i]->pos[0] && x_llim<robots[i]->pos[0] && 
+				y_ulim>robots[i]->pos[1] && y_llim<robots[i]->pos[1]) //if not in the sqare limits, i dont even check the circular ones
 			{
+
+				int dist_x = x - robots[i]->pos[0];
+				int dist_y = y - robots[i]->pos[1];
 				double distance = sqrt(dist_x*dist_x + dist_y * dist_y);
 				if (distance < two_r)
 				{
@@ -139,7 +146,6 @@ void drawScene(void)
 	//let robots communicate
 	for (i = 0;i < num_robots;i++)
 	{
-
 		//if robot wants to communicate, send message to all robots within distance comm_range
 		if (robots[order[i]]->tx_request == 1)
 		{
@@ -148,13 +154,18 @@ void drawScene(void)
 			{
 				if (j != order[i])
 				{
-					double distance = sqrt((robots[order[i]]->pos[0] - robots[j]->pos[0])*(robots[order[i]]->pos[0] - robots[j]->pos[0]) + (robots[order[i]]->pos[1] - robots[j]->pos[1])*(robots[order[i]]->pos[1] - robots[j]->pos[1]));
-					if (distance < comm_range)//robot within com range, put transmitting robots data in its data_in struct
+					double dist_x = robots[order[i]]->pos[0] - robots[j]->pos[0];
+					double dist_y = robots[order[i]]->pos[1] - robots[j]->pos[1];
+					if (dist_x > -comm_range && dist_x<comm_range && dist_y>-comm_range && dist_y < -comm_range)
 					{
-						robots[j]->incoming_message_flag = 1;
-						robots[j]->data_in = robots[order[i]]->data_out;
-						robots[j]->data_in.distance = distance + gaussrand()*comm_noise_std;
+						double distance = sqrt(dist_x*dist_x + dist_y*dist_y);
+						if (distance < comm_range)//robot within com range, put transmitting robots data in its data_in struct
+						{
+							robots[j]->incoming_message_flag = 1;
+							robots[j]->data_in = robots[order[i]]->data_out;
+							robots[j]->data_in.distance = distance + gaussrand()*comm_noise_std;
 
+						}
 					}
 				}
 			}
@@ -219,7 +230,7 @@ void drawScene(void)
 	glRectd(0, 0, arena_width, arena_height);
 
 	//draw robots
-	int triangleAmount = 300;
+	int triangleAmount = 260/zoom*500+40; //level of detail is determined by the zoom
 	GLfloat twicePi = 2.0f * PI;
 	glEnable(GL_LINE_SMOOTH);
 	glLineWidth(1.0);
