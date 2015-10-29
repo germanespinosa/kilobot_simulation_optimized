@@ -11,14 +11,14 @@ using namespace std;
 #define delay 0 //delay between time steps, use if program is too fast
 #define windowWidth 500 //display window
 #define windowHeight 500 //display window
-#define num_robots 1000 //number of robots running
+#define num_robots 100 //number of robots running
 #define num_smart_robots 2 //number of robots running
 #define comm_noise_std 5 //standard dev. of sensor noise
 #define PI 3.14159265358979324
 #define radius 20 //radius of a robot
 #define p_control_execute .99 // probability of a controller executing its time step
-#define arena_width 10000
-#define arena_height 10000
+#define arena_width 1000
+#define arena_height 1000
 
 // Global vars.
 double time_sim;  //simulation time

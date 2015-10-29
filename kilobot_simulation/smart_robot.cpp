@@ -114,4 +114,13 @@ class smart_robot : public robot
 		double t = atan(y / x);
 		return t;
 	}
+	bool smart_robot::comm_out_criteria(double x, double y)
+	{
+		if (robot::comm_out_criteria(x, y))
+		{
+			double theta = find_theta(pos[0], pos[1], x, y);
+			if (theta > pos[2] - .76 || theta < pos[2] + .76) return false;
+		}
+		return true;
+	}
 };
