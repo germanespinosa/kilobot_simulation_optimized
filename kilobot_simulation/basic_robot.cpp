@@ -33,6 +33,12 @@ class basic_robot : public robot
 							behavior = 2;
 							break;
 						}
+						if (data_in.message & signal_basic && data_in.message & signal_recruit && data_in.message & signal_gradient)
+						{
+							disk_size = (data_in.message & 31)-1;
+							behavior = 3;
+							break;
+						}
 					}
 				}
 				if (!(steps % 100))
@@ -74,10 +80,18 @@ class basic_robot : public robot
 			}
 		case 3:
 			{
-				data_out.message = signal_basic + signal_recruit + signal_gradient + disk_size;
-				if (timer % 10)
+				motor_command = 4;
+				color[0] = 1;
+				color[1] = 1;
+				color[2] = 1;
+				if (disk_size > 0)
 				{
-					tx_request = 1;
+					data_out.id = id;
+					data_out.message = signal_basic + signal_recruit + signal_gradient + disk_size;
+					if (timer % 10)
+					{
+						tx_request = 1;
+					}
 				}
 			}
 		}
