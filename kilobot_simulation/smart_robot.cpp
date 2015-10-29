@@ -7,7 +7,7 @@
 #define signal_recruit 32
 
 #define min_movement 40
-#define tolerance 20
+#define tolerance 50
 #define PI 3.14159265358979324
 
 class smart_robot : public robot
@@ -17,6 +17,8 @@ class smart_robot : public robot
 	int disks_size[2] = { 5, 7 };
 	int disks_center_x[2] = { 800, 500 };
 	int disks_center_y[2] = { 800, 600 };
+	bool disks_completed[2] = { false,false };
+	int disks_ids[2] = { 0,0 };
 	int closest_disk = -1;
 	//smart robots turn in place, walk straight, have gps and compass 
 	//smart robot variables
@@ -32,22 +34,30 @@ class smart_robot : public robot
 		{ 
 			case 1:
 			{
-				double dist = distance(disks_center_x[0],disks_center_y[0],x, y);
-				closest_disk = 0;
-				for(int i = 1;i < disks;i++)
+				double dist = 0;
+				closest_disk = -1;
+				for(int i = 0;i < disks;i++)
 				{
-					double newdist = distance (disks_center_x[i], disks_center_y[i], x,  y);
-					if (dist > newdist)
+					if (!disks_completed[i])
 					{
-						dist = newdist;
-						closest_disk = i;
+						double newdist = distance(disks_center_x[i], disks_center_y[i], x, y);
+						if (dist > newdist || closest_disk==-1)
+						{
+							dist = newdist;
+							closest_disk = i;
+						};
 					};
+				}
+				if (closest_disk == -1) // we're done
+				{
+					behavior = 5;
+					break;
 				}
 				//let's record our position to know if we are moving
 				prev_pos[0] = pos[0];
 				prev_pos[1] = pos[1];
 				prev_pos[2] = pos[2];
-				steps = 0;
+				steps = 1;
 				behavior = 2; // move toward the closest disk
 			}
 			case 2:
@@ -63,72 +73,125 @@ class smart_robot : public robot
 					color[2] = 1;
 					break;
 				}
-				//let's see if we are stuck
-				if ((steps % 300) == 0)
-				{
-					if (distance(prev_pos[0], prev_pos[1], pos[0], pos[1]) < min_movement)
-					{
-						steps = 0;
-						behavior = 4; //evade the obstacle
-						break;
-					}
-					//let's record our new position
-					prev_pos[0] = pos[0];
-					prev_pos[1] = pos[1];
-					prev_pos[2] = pos[2];
-					steps = 0;
-				}
 				//darn, we are not there
 				// let's find if we are pointing in the right direction
 				double target_tetha = find_theta(x, y, disks_center_x[closest_disk], disks_center_y[closest_disk]);
 				if ((target_tetha - .1 < t) && (target_tetha + .1 > t))
 				{
 					// hurray we are pointing in the right direction!
+
+					//let's see if we are stuck
+					if ((steps % 200) == 0)
+					{
+						if (distance(prev_pos[0], prev_pos[1], pos[0], pos[1]) < min_movement)
+						{
+							steps = 0;
+							behavior = 4; //evade the obstacle
+							break;
+						}
+						//let's record our new position
+						prev_pos[0] = pos[0];
+						prev_pos[1] = pos[1];
+						prev_pos[2] = pos[2];
+						steps = 0;
+					}
 					motor_command = 1;// lets move forward
-					color[0] = 0;
-					color[1] = 1;
-					color[2] = 1;
 					break;
 				}
 				// terrible luck today... let's correct the direction
+				steps = 0;
+				color[0] = 1;
+				color[1] = 0;
+				color[2] = 0;
 				if (target_tetha > t)
 				{
-					motor_command = 2;
-					color[0] = 1;
-					color[1] = 0;
-					color[2] = 0;
+					if (target_tetha < t + PI)
+					{
+						motor_command = 2;
+					}
+					else
+					{
+						motor_command = 3;
+					}
 				}else {
-					motor_command = 3;
-					color[0] = 1;
-					color[1] = 1;
-					color[2] = 0;
+					if (target_tetha + PI < t )
+					{
+						motor_command = 2;
+					}
+					else
+					{
+						motor_command = 3;
+					}
 				}
 				break;
 			}
 			case 3:
 			{
+				//let's check if somebody receibed the message, we have a possible seed
+				if (incoming_message_flag)
+				{
+					incoming_message_flag = 0;
+					if (data_in.message == signal_basic + signal_recruit)
+					{
+						disks_ids[closest_disk] = data_in.id;
+						behavior = 7;
+						break;
+					}
+				}
+
 				data_out.id = id;
-				data_out.message = signal_smart + signal_recruit + disks_size[closest_disk];	
+				data_out.message = signal_smart + signal_recruit + closest_disk;
+				if (timer % 10)
+				{
+					tx_request = 1;
+				}
+				break;
 			}
 			case 4: //we are stuck... lets evade
 			{
-				if(steps < 80)
+				if(steps < 100)
 				{
 					motor_command = 2;
 				} else if (steps < 200) 
 				{
 					motor_command = 1;
-				} else if(steps < 280)
+				} else if(steps < 300)
 				{
 					motor_command = 3;
 				} else if (steps < 400)
 				{   
 					motor_command = 1;
 				}
-				else { behavior = 2; }
-				color[1] = 1;
-				color[0] = 0;
-				color[0] = 0;
+				else { 
+					behavior = 2; 
+					prev_pos[0] = pos[0];
+					prev_pos[1] = pos[1];
+					prev_pos[2] = pos[2];
+					steps = 0;
+				}
+				break;
+			}
+			case 7:
+			{
+				if (incoming_message_flag)
+				{
+					incoming_message_flag = 0;
+					if (data_in.message & signal_basic && data_in.message & signal_recruit && data_in.message & signal_gradient)
+					{
+						if (disks_ids[closest_disk] == data_in.id)
+						{
+							disks_completed[closest_disk] = true;
+							behavior = 1;
+							break;
+						}
+					}
+				}
+				data_out.id = id;
+				data_out.message = signal_smart + signal_gradient + disks_size[closest_disk];
+				if (timer % 10)
+				{
+					tx_request = 1;
+				}
 				break;
 			}
 		}
@@ -151,16 +214,32 @@ class smart_robot : public robot
 		if (x1 == x2) return 0;
 		double x = x2 - x1; 
 		double y = y2 - y1;
-		double t = atan(y / x);
-		return t;
+		
+		if (x >= 0 && y >= 0)
+		{
+			return atan(y / x);
+		}
+		if (x < 0 && y < 0)
+		{
+			return atan(y / x) + PI;
+		}
+		if (x < 0 && y > 0)
+		{
+			return atan(abs(x) / y) + PI/2;
+		}
+		return atan(x / abs(y)) + PI / 2 * 3;
 	}
 	bool smart_robot::comm_out_criteria(double x, double y)
 	{
+		double theta=0;
 		if (robot::comm_out_criteria(x, y))
 		{
-			double theta = find_theta(pos[0], pos[1], x, y);
-			if (theta > pos[2] - .76 || theta < pos[2] + .76) return false;
+			theta = find_theta(pos[0], pos[1], x, y);
+			if (pos[2] > theta - .2 && pos[2] < theta + .2)
+			{
+				return true;
+			}
 		}
-		return true;
+		return false;
 	}
 };

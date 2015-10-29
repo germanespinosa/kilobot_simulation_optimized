@@ -45,7 +45,7 @@ double robot::gaussrand()
 }
 bool robot::comm_out_criteria(double x, double y) //stardard circular transmission area
 {
-	if (x < pos[0] - comm_range || x < pos[0] + comm_range || y > pos[1] - comm_range||y < pos[1] + comm_range) return false;
+	if (x < pos[0] - comm_range || x > pos[0] + comm_range || y < pos[1] - comm_range||y > pos[1] + comm_range) return false;
 	double distance = sqrt((x-pos[1])*(x-pos[0])+(y-pos[1])*(y-pos[1]));
 	return distance < comm_range; //robot within com range, put transmitting robots data in its data_in struct
 }

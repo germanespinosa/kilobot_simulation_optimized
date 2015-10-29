@@ -11,8 +11,8 @@ using namespace std;
 #define delay 0 //delay between time steps, use if program is too fast
 #define windowWidth 500 //display window
 #define windowHeight 500 //display window
-#define num_robots 100 //number of robots running
-#define num_smart_robots 2 //number of robots running
+#define num_robots 300 //number of robots running
+#define num_smart_robots 1 //number of robots running
 #define comm_noise_std 5 //standard dev. of sensor noise
 #define PI 3.14159265358979324
 #define radius 20 //radius of a robot
@@ -260,7 +260,7 @@ void drawScene(void)
 	glEnd();
 
 	glColor3f(1.0f, 0.0f, 0.0f);
-	glRectd(795, 795, 805, 805);
+	glRectd(495, 595, 505, 605);
 
 	cout << time_sim << endl;
 	time_sim = time_sim + 1;
@@ -344,9 +344,9 @@ void setup_positions()
 	{
 		int c = i % columns + 1;
 		int r = i / columns + 1;
-		int hr = rand() % horizontal_separation - horizontal_separation / 2;
+		int hr = rand() % (horizontal_separation/2) + horizontal_separation / 4;
 		int x = c * horizontal_separation  + hr ;
-		int vr = rand() % vertical_separation - vertical_separation / 2;
+		int vr = rand() % (vertical_separation/2) + vertical_separation / 4;
 		int y = r * vertical_separation + vr;
 		if (i < num_smart_robots)
 		{
