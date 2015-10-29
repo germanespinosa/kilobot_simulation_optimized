@@ -5,7 +5,7 @@
 #define signal_gradient 64
 #define signal_recruit 32
 
-#define tolerance 50
+#define tolerance 60
 
 class basic_robot : public robot
 {
@@ -41,9 +41,25 @@ class basic_robot : public robot
 						}
 					}
 				}
-				if (!(steps % 100))
+				
+				if (steps < 100)
 				{
-					motor_command = (steps / 100) % 3 + 1;
+					motor_command = 2;
+				}
+				else if (steps < 300)
+				{
+					motor_command = 1;
+				}
+				else if (steps < 400)
+				{
+					motor_command = 3;
+				}
+				else if (steps < 600)
+				{
+					motor_command = 1;
+				}
+				else {
+					steps = 0;
 				}
 				color[0] = 0;
 				color[1] = 1;
@@ -81,9 +97,6 @@ class basic_robot : public robot
 		case 3:
 			{
 				motor_command = 4;
-				color[0] = 1;
-				color[1] = 1;
-				color[2] = 1;
 				if (disk_size > 0)
 				{
 					data_out.id = id;
@@ -92,6 +105,13 @@ class basic_robot : public robot
 					{
 						tx_request = 1;
 					}
+					color[0] = 1;
+					color[1] = 1;
+					color[2] = 1;
+				}else{
+					color[0] = 0;
+					color[1] = 1;
+					color[2] = 1;
 				}
 			}
 		}

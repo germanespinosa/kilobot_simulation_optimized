@@ -14,7 +14,7 @@ class smart_robot : public robot
 {
 
 	int disks = 3;
-	int disks_size[3] = { 5, 7, 0 };
+	int disks_size[3] = { 2, 3, 0 };
 	int disks_center_x[3] = { 1400, 500, 2000 };
 	int disks_center_y[3] = { 800, 600, 2000 };
 	bool disks_completed[3] = { false,false,false };
