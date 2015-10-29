@@ -11,8 +11,7 @@ using namespace std;
 #define delay 0 //delay between time steps, use if program is too fast
 #define windowWidth 500 //display window
 #define windowHeight 500 //display window
-#define comm_range 100 //communication range between robots
-#define num_robots 3000 //number of robots running
+#define num_robots 1000 //number of robots running
 #define num_smart_robots 2 //number of robots running
 #define comm_noise_std 5 //standard dev. of sensor noise
 #define PI 3.14159265358979324
@@ -154,18 +153,13 @@ void drawScene(void)
 			{
 				if (j != order[i])
 				{
-					double dist_x = robots[order[i]]->pos[0] - robots[j]->pos[0];
-					double dist_y = robots[order[i]]->pos[1] - robots[j]->pos[1];
-					if (dist_x > -comm_range && dist_x<comm_range && dist_y>-comm_range && dist_y < -comm_range)
+					if (robots[order[i]]->comm_out_criteria(robots[j]->pos[0],robots[j]->pos[1]) && robots[j]->comm_in_criteria(robots[order[i]]->pos[0], robots[order[i]]->pos[1]))
 					{
-						double distance = sqrt(dist_x*dist_x + dist_y*dist_y);
-						if (distance < comm_range)//robot within com range, put transmitting robots data in its data_in struct
-						{
-							robots[j]->incoming_message_flag = 1;
-							robots[j]->data_in = robots[order[i]]->data_out;
-							robots[j]->data_in.distance = distance + gaussrand()*comm_noise_std;
+						double distance = sqrt((robots[j]->pos[0] - robots[order[i]]->pos[0])*(robots[j]->pos[0] - robots[order[i]]->pos[0]) + (robots[j]->pos[1] - robots[order[i]]->pos[1])*(robots[j]->pos[1] - robots[order[i]]->pos[1]));
+						robots[j]->incoming_message_flag = 1;
+						robots[j]->data_in = robots[order[i]]->data_out;
+						robots[j]->data_in.distance = distance + gaussrand()*comm_noise_std;
 
-						}
 					}
 				}
 			}

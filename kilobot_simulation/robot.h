@@ -1,6 +1,7 @@
 #ifndef ROBOT_H
 #define ROBOT_H
 #define motion_error_std .007
+#define comm_range 100 //communication range between robots
 
 class robot
 {
@@ -49,5 +50,9 @@ public:
 
 	//data to transmitt goes here
 	communcation_data data_out;
+
+	bool comm_out_criteria(double x, double y);
+	bool comm_in_criteria(double x, double y);
+
 };
 #endif
