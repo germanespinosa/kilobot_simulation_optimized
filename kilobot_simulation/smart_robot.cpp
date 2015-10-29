@@ -6,6 +6,7 @@
 #define signal_gradient 64
 #define signal_recruit 32
 
+#define min_movement 40
 #define tolerance 20
 #define PI 3.14159265358979324
 
@@ -14,13 +15,14 @@ class smart_robot : public robot
 
 	int disks = 2;
 	int disks_size[2] = { 5, 7 };
-	int disks_center_x[2] = { 3800, 1500 };
-	int disks_center_y[2] = { 3800, 3600 };
+	int disks_center_x[2] = { 800, 500 };
+	int disks_center_y[2] = { 800, 600 };
 	int closest_disk = -1;
 	//smart robots turn in place, walk straight, have gps and compass 
 	//smart robot variables
 	int behavior = 1; // 1 - identify the closest circle center 2 - moving toward a circle center 3 - recruiting a seed
-		
+	double prev_pos[3];
+	int steps;
 	void robot::controller()
 	{
 		double x = pos[0];
@@ -41,6 +43,11 @@ class smart_robot : public robot
 						closest_disk = i;
 					};
 				}
+				//let's record our position to know if we are moving
+				prev_pos[0] = pos[0];
+				prev_pos[1] = pos[1];
+				prev_pos[2] = pos[2];
+				steps = 0;
 				behavior = 2; // move toward the closest disk
 			}
 			case 2:
@@ -55,6 +62,21 @@ class smart_robot : public robot
 					color[1] = 1;
 					color[2] = 1;
 					break;
+				}
+				//let's see if we are stuck
+				if ((steps % 300) == 0)
+				{
+					if (distance(prev_pos[0], prev_pos[1], pos[0], pos[1]) < min_movement)
+					{
+						steps = 0;
+						behavior = 4; //evade the obstacle
+						break;
+					}
+					//let's record our new position
+					prev_pos[0] = pos[0];
+					prev_pos[1] = pos[1];
+					prev_pos[2] = pos[2];
+					steps = 0;
 				}
 				//darn, we are not there
 				// let's find if we are pointing in the right direction
@@ -88,11 +110,29 @@ class smart_robot : public robot
 				data_out.id = id;
 				data_out.message = signal_smart + signal_recruit + disks_size[closest_disk];	
 			}
+			case 4: //we are stuck... lets evade
+			{
+				if(steps < 80)
+				{
+					motor_command = 2;
+				} else if (steps < 200) 
+				{
+					motor_command = 1;
+				} else if(steps < 280)
+				{
+					motor_command = 3;
+				} else if (steps < 400)
+				{   
+					motor_command = 1;
+				}
+				else { behavior = 2; }
+				color[1] = 1;
+				color[0] = 0;
+				color[0] = 0;
+				break;
+			}
 		}
-		if ((timer % 10) == 0)
-		{
-			tx_request = 1;
-		}
+		steps++;
 		timer++;
 	}
 	void robot::init_robot()

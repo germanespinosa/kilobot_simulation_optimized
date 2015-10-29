@@ -17,8 +17,8 @@ using namespace std;
 #define PI 3.14159265358979324
 #define radius 20 //radius of a robot
 #define p_control_execute .99 // probability of a controller executing its time step
-#define arena_width 1000
-#define arena_height 1000
+#define arena_width 2000
+#define arena_height 2000
 
 // Global vars.
 double time_sim;  //simulation time
@@ -216,7 +216,14 @@ void drawScene(void)
 		else //stop motors
 		{
 		}
-
+		if (robots[order[i]]->pos[2] < 0)
+		{
+			robots[order[i]]->pos[2] += 2 * PI;
+		}
+		if (robots[order[i]]->pos[2] > 2 * PI)
+		{
+			robots[order[i]]->pos[2] -= 2 * PI;
+		}
 	}
 
 	//draws the arena
