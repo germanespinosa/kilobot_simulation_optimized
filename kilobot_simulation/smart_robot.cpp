@@ -14,9 +14,9 @@ class smart_robot : public robot
 {
 
 	int disks = 3;
-	int disks_size[3] = { 2, 3, 0 };
-	int disks_center_x[3] = { 1400, 500, 2000 };
-	int disks_center_y[3] = { 800, 600, 2000 };
+	int disks_size[3] = { 2, 2, 0 };
+	int disks_center_x[3] = { 400, 500, 10000 };
+	int disks_center_y[3] = { 800, 600, 10000 };
 	bool disks_completed[3] = { false,false,false };
 	int disks_ids[3] = { 0,0,0 };
 	int closest_disk = -1;
@@ -68,9 +68,6 @@ class smart_robot : public robot
 					//hurray we are there!
 					motor_command = 4;
 					behavior = 3; //recruiting
-					color[0] = 1;
-					color[1] = 1;
-					color[2] = 1;
 					break;
 				}
 				//darn, we are not there
@@ -127,13 +124,17 @@ class smart_robot : public robot
 			}
 			case 3:
 			{
-				//let's check if somebody receibed the message, we have a possible seed
+				color[0] = 0;
+				color[1] = 0;
+				color[2] = 1;
+				//let's check if somebody received the message, we have a possible seed
 				if (incoming_message_flag)
 				{
 					incoming_message_flag = 0;
 					if (data_in.message == signal_basic + signal_recruit)
 					{
 						disks_ids[closest_disk] = data_in.id;
+						steps = 0;
 						behavior = 7;
 						break;
 					}
@@ -141,7 +142,7 @@ class smart_robot : public robot
 
 				data_out.id = id;
 				data_out.message = signal_smart + signal_recruit + closest_disk;
-				if (timer % 10)
+				if (timer % 5)
 				{
 					tx_request = 1;
 				}
@@ -186,6 +187,10 @@ class smart_robot : public robot
 						}
 					}
 				}
+				if (steps >= 500)
+				{
+
+				}
 				data_out.id = id;
 				data_out.message = signal_smart + signal_gradient + disks_size[closest_disk];
 				if (timer % 10)
@@ -200,6 +205,7 @@ class smart_robot : public robot
 	}
 	void robot::init_robot()
 	{
+		comm_range = 60;
 	}
 
 	double distance(int x1, int y1, int x2, int y2)
