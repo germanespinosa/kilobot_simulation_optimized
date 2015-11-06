@@ -16,6 +16,10 @@ void robot::init(int x, int y, int t)
 	rand();
 	motor_error = gaussrand()*motion_error_std;
 	init_robot();
+	for (int i = 0; i < 100;i++)
+	{
+		gaus_rand[i] = gaussrand();
+	};
 }
 
 double robot::gaussrand()
@@ -45,9 +49,10 @@ double robot::gaussrand()
 }
 bool robot::comm_out_criteria(double x, double y) //stardard circular transmission area
 {
-	if (x < pos[0] - comm_range || x > pos[0] + comm_range || y < pos[1] - comm_range||y > pos[1] + comm_range) return false;
+	double gaus_comm_range = comm_range + gaus_rand[timer % 100] * comm_range;
+	if (x < pos[0] - gaus_comm_range || x > pos[0] + gaus_comm_range || y < pos[1] - gaus_comm_range ||y > pos[1] + gaus_comm_range) return false;
 	double distance = sqrt((x-pos[1])*(x-pos[0])+(y-pos[1])*(y-pos[1]));
-	return distance < comm_range; //robot within com range, put transmitting robots data in its data_in struct
+	return distance < gaus_comm_range; //robot within com range, put transmitting robots data in its data_in struct
 }
 bool robot::comm_in_criteria(double x, double y) //omnidirectional
 {

@@ -93,7 +93,7 @@ class basic_robot : public robot
 				color[2] = 0;
 				data_out.id = id;
 				data_out.message = signal_basic + signal_recruit;
-				if (timer % 10)
+				if (!(steps % 10))
 				{
 					tx_request = 1;
 				}
@@ -137,7 +137,7 @@ class basic_robot : public robot
 					color[0] = 1;
 					color[1] = 1;
 					color[2] = 1;
-					if (timer % 10)
+					if (!(steps % 30))
 					{
 						color[0] = 1;
 						color[1] = 0;
@@ -156,6 +156,7 @@ class basic_robot : public robot
 	}
 	void robot::init_robot()
 	{
+		steps = timer % 600;
 		comm_range = 60;
 	}
 };

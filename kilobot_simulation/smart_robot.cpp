@@ -142,7 +142,7 @@ class smart_robot : public robot
 
 				data_out.id = id;
 				data_out.message = signal_smart + signal_recruit + closest_disk;
-				if (timer % 5)
+				if (!(steps % 5))
 				{
 					tx_request = 1;
 				}
@@ -189,11 +189,12 @@ class smart_robot : public robot
 				}
 				if (steps >= 500)
 				{
-
+					behavior = 2;
+					break;
 				}
 				data_out.id = id;
 				data_out.message = signal_smart + signal_gradient + disks_size[closest_disk];
-				if (timer % 10)
+				if (!(steps % 10))
 				{
 					tx_request = 1;
 				}
