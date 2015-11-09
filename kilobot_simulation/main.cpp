@@ -27,33 +27,6 @@ float zoom, view_x, view_y; //var. for zoom and scroll
 
 robot** robots = new robot*[num_robots];//creates an array of robots
 
-//generates a gaussian random variable, used for noise
-double gaussrand()
-{
-	static double V1, V2, S;
-	static int phase = 0;
-	double X;
-
-	if (phase == 0) {
-		do {
-			double U1 = (double)rand() / RAND_MAX;
-			double U2 = (double)rand() / RAND_MAX;
-
-			V1 = 2 * U1 - 1;
-			V2 = 2 * U2 - 1;
-			S = V1 * V1 + V2 * V2;
-		} while (S >= 1 || S == 0);
-
-		X = V1 * sqrt(-2 * log(S) / S);
-	}
-	else
-		X = V2 * sqrt(-2 * log(S) / S);
-
-	phase = 1 - phase;
-
-	return X;
-}
-
 //check to see if motion causes robots to collide
 int find_collisions(int id, double x, double y)
 {
@@ -104,7 +77,7 @@ void drawScene(void)
 		//run controller this time step with p_control_execute probability
 		if ((rand())<(int)(p_control_execute*RAND_MAX))
 		{
-			((robot*)robots[i])->controller();
+			((robot*)robots[i])->robot_controller();
 		}
 
 	}
@@ -158,7 +131,7 @@ void drawScene(void)
 						double distance = sqrt((robots[j]->pos[0] - robots[order[i]]->pos[0])*(robots[j]->pos[0] - robots[order[i]]->pos[0]) + (robots[j]->pos[1] - robots[order[i]]->pos[1])*(robots[j]->pos[1] - robots[order[i]]->pos[1]));
 						robots[j]->incoming_message_flag = 1;
 						robots[j]->data_in = robots[order[i]]->data_out;
-						robots[j]->data_in.distance = distance + gaussrand()*comm_noise_std;
+						robots[j]->data_in.distance = distance;
 
 					}
 				}
@@ -355,7 +328,7 @@ void setup_positions()
 		{	
 			robots[k] = new basic_robot();
 		}
-		robots[k]->init(x, y, i);
+		robots[k]->robot_init(x, y, i);
 		k++;
 	}
 }

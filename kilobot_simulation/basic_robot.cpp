@@ -5,7 +5,8 @@
 #define signal_gradient 64
 #define signal_recruit 32
 
-#define tolerance 60
+
+#define radius 20 //radius of a robot
 
 class basic_robot : public robot
 {
@@ -23,24 +24,21 @@ class basic_robot : public robot
 				if (incoming_message_flag == 1) //i found a brother
 				{
 					incoming_message_flag = 0;
-					if (data_in.distance < tolerance) //is he close enough?
+					// he is, let's see if he wants to recruit me
+					if (data_in.message & signal_smart && data_in.message & signal_recruit)
 					{
-						// he is, let's see if he wants to recruit me
-						if (data_in.message & signal_smart && data_in.message & signal_recruit)
-						{
-							//i'll be a seed! how exiting!
-							disk_id = data_in.message & 31;
-							motor_command = 4;
-							behavior = 2;
-							steps = 0;
-							break;
-						}
-						if (data_in.message & signal_basic && data_in.message & signal_recruit && data_in.message & signal_gradient)
-						{
-							disk_size = (data_in.message & 31)-1;
-							behavior = 3;
-							break;
-						}
+						//i'll be a seed! how exiting!
+						disk_id = data_in.message & 31;
+						motor_command = 4;
+						behavior = 2;
+						steps = 0;
+						break;
+					}
+					if (data_in.message & signal_basic && data_in.message & signal_recruit && data_in.message & signal_gradient)
+					{
+						disk_size = (data_in.message & 31)-1;
+						behavior = 3;
+						break;
 					}
 				}
 				
@@ -105,27 +103,24 @@ class basic_robot : public robot
 				if (incoming_message_flag)
 				{
 					incoming_message_flag = 0;
-					if (data_in.distance < tolerance)
+					if (data_in.message & signal_basic && data_in.message & signal_recruit && data_in.message & signal_gradient)
 					{
-						if (data_in.message & signal_basic && data_in.message & signal_recruit && data_in.message & signal_gradient)
+						if (disk_size < (data_in.message & 31)-1)
 						{
-							if (disk_size < (data_in.message & 31)-1)
-							{
-								disk_size = (data_in.message & 31)-1;
-								behavior = 3;
-								color[0] = 1;
-								color[1] = 0;
-								color[2] = 1;
-							}
+							disk_size = (data_in.message & 31)-1;
+							behavior = 3;
+							color[0] = 1;
+							color[1] = 0;
+							color[2] = 1;
 						}
-						if (data_in.message & signal_smart && data_in.message & signal_gradient)
+					}
+					if (data_in.message & signal_smart && data_in.message & signal_gradient)
+					{
 						{
-							{
-								disk_size = data_in.message & 31;
-								color[0] = 1;
-								color[1] = 1;
-								color[2] = 1;
-							}
+							disk_size = data_in.message & 31;
+							color[0] = 1;
+							color[1] = 1;
+							color[2] = 1;
 						}
 					}
 				}
@@ -152,11 +147,20 @@ class basic_robot : public robot
 			}
 		}
 		steps++;
-		timer++;
 	}
-	void robot::init_robot()
+	void robot::init()
 	{
 		steps = timer % 600;
 		comm_range = 60;
+	}
+	bool robot::comm_out_criteria(double x, double y) //stardard circular transmission area
+	{
+		if (x < pos[0] - radius || x > pos[0] + radius || y < pos[1] - radius || y > pos[1] + radius) return false;
+		return robot::distance(pos[0],pos[1],x,y) <= radius; //robot within com range, put transmitting robots data in its data_in struct
+	}
+	bool robot::comm_in_criteria(double x, double y) //omnidirectional
+	{
+		if (gauss_rand(timer) < .90) return true;
+		return false;
 	}
 };

@@ -1,34 +1,31 @@
+#include <iostream>
+
 #ifndef ROBOT_H
 #define ROBOT_H
 #define motion_error_std .007
+#define PI 3.14159265358979324
+#define GAUSS 10000
 
 class robot
 {
 public:
-
+	int id;
 	double pos[3];//x,y,theta position in real world, dont use these in controller, thats cheating!!
 	double motor_error;//value of how motors differ from ideal, dont use these, thats cheating!!
 	double comm_range = 60; //communication range between robots
-
-	double gaus_rand[100];
-
 	double color[3]; //robot color output, values 0-1
-
 	//robot commanded motion 1=forward, 2=cw rotation, 3=ccw rotation, 4=stop
 	int motor_command;
 
-	//function initalized varaibles
-	void init(int, int, int);
-
 	//must implement an robot initialization
-	virtual void init_robot() = 0;
+	void robot_init(int, int, int);
+	virtual void init() = 0;
 
 	//robots internal timer
 	int timer;
 
-	double gaussrand();
-
 	//must implement the controller
+	void robot_controller();
 	virtual void controller() = 0;
 
 	//flag set to 1 when robot wants to transmitt
@@ -36,9 +33,6 @@ public:
 		
 	//flag set to 1 when new message received
 	int incoming_message_flag;
-	int id;
-	int hop;
-	int previous_distance;
 
 	//communication data struct
 	struct communcation_data {
@@ -47,14 +41,81 @@ public:
 		double distance;
 	};
 
+	//comms
 	//received data goes here
 	communcation_data data_in;
-
 	//data to transmitt goes here
 	communcation_data data_out;
+	virtual bool comm_out_criteria(double destination_x, double destination_y) = 0;
+	virtual bool comm_in_criteria(double source_x, double source_y) = 0;
+	 
+	//useful  
+	static double distance(int x1, int y1, int x2, int y2)
+	{
+		double x = x1 - x2;
+		double y = y1 - y2;
+		double s = pow(x, 2) + pow(y, 2);
+		return sqrt(s);
+	}
+	static double find_theta(int x1, int y1, int x2, int y2)
+	{
+		if (x1 == x2) return 0;
+		double x = x2 - x1;
+		double y = y2 - y1;
 
-	virtual bool comm_out_criteria(double x, double y);
-	virtual bool comm_in_criteria(double x, double y);
+		if (x >= 0 && y >= 0)
+		{
+			return atan(y / x);
+		}
+		if (x < 0 && y < 0)
+		{
+			return atan(y / x) + PI;
+		}
+		if (x < 0 && y > 0)
+		{
+			return atan(abs(x) / y) + PI / 2;
+		}
+		return atan(x / abs(y)) + PI / 2 * 3;
+	}
+	static double gauss_rand(int timer)
+	{
+		static double pseudogaus_rand[GAUSS+1];
+		if (pseudogaus_rand[GAUSS] == 1)
+		{
+			return pseudogaus_rand[timer % GAUSS];
+		}
+		for (int i = 0; i < GAUSS;i++)
+		{
+			pseudogaus_rand[i] = gaussrand();
+		};
+		pseudogaus_rand[GAUSS] = 1;
+	}
 
+private:
+	static double gaussrand()
+	{
+		static double V1, V2, S;
+		static int phase = 0;
+		double X;
+
+		if (phase == 0) {
+			do {
+				double U1 = (double)rand() / RAND_MAX;
+				double U2 = (double)rand() / RAND_MAX;
+
+				V1 = 2 * U1 - 1;
+				V2 = 2 * U2 - 1;
+				S = V1 * V1 + V2 * V2;
+			} while (S >= 1 || S == 0);
+
+			X = V1 * sqrt(-2 * log(S) / S);
+		}
+		else
+			X = V2 * sqrt(-2 * log(S) / S);
+
+		phase = 1 - phase;
+
+		return X;
+	}
 };
 #endif
