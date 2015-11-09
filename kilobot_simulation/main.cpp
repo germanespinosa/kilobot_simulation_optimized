@@ -11,15 +11,15 @@ using namespace std;
 #define delay 0 //delay between time steps, use if program is too fast
 #define windowWidth 500 //display window
 #define windowHeight 500 //display window
-#define num_robots 100 //number of robots running
+#define num_robots 1500 //number of robots running
 #define num_smart_robots 1 //number of robots running
 #define comm_noise_std 5 //standard dev. of sensor noise
 #define PI 3.14159265358979324
 #define radius 20 //radius of a robot
 #define p_control_execute .99 // probability of a controller executing its time step
-#define arena_width 1000
-#define arena_height 1000
-
+#define arena_width 5000
+#define arena_height 5000
+#define SKIPFRAMES 2
 // Global vars.
 double time_sim;  //simulation time
 float zoom, view_x, view_y; //var. for zoom and scroll
@@ -55,7 +55,6 @@ int find_collisions(int id, double x, double y)
 				}
 			}
 		}
-
 	}
 	return 0;
 
@@ -204,42 +203,47 @@ void drawScene(void)
 	glRectd(0, 0, arena_width, arena_height);
 
 	//draw robots
-	int triangleAmount = 260/zoom*500+40; //level of detail is determined by the zoom
-	GLfloat twicePi = 2.0f * PI;
-	glEnable(GL_LINE_SMOOTH);
-	glLineWidth(1.0);
-	glBegin(GL_LINES);
-	for (i = 0; i <= triangleAmount; i++)
+	static int lastrun = 0;
+	lastrun++;
+	if (!(lastrun % (SKIPFRAMES+1)))
 	{
-		double c = cos(i * twicePi / triangleAmount);
-		double s = sin(i * twicePi / triangleAmount);
+		int triangleAmount = 260 / zoom * 50 + 20; //level of detail is determined by the zoom
+		GLfloat twicePi = 2.0f * PI;
+		glEnable(GL_LINE_SMOOTH);
+		glLineWidth(1.0);
+		glBegin(GL_LINES);
+		for (i = 0; i <= triangleAmount; i++)
+		{
+			double c = cos(i * twicePi / triangleAmount);
+			double s = sin(i * twicePi / triangleAmount);
+			for (int j = 0;j < num_robots;j++)
+			{
+
+				glColor4f(robots[j]->color[0], robots[j]->color[1], robots[j]->color[2], 1.0);
+				glVertex2f(robots[j]->pos[0], robots[j]->pos[1]);
+				glVertex2f(robots[j]->pos[0] + (radius * c), robots[j]->pos[1] + (radius * s));
+			}
+		}
 		for (int j = 0;j < num_robots;j++)
 		{
-
-			glColor4f(robots[j]->color[0], robots[j]->color[1], robots[j]->color[2], 1.0);
+			glBegin(GL_LINES);
+			glColor4f(0, 0, 0, 1.0);
 			glVertex2f(robots[j]->pos[0], robots[j]->pos[1]);
-			glVertex2f(robots[j]->pos[0] + (radius * c), robots[j]->pos[1] + (radius * s));
+			glVertex2f(robots[j]->pos[0] + cos(robots[j]->pos[2])*radius, robots[j]->pos[1] + sin(robots[j]->pos[2])*radius);
 		}
-	}
-	for (int j = 0;j < num_robots;j++)
-	{
+
 		glBegin(GL_LINES);
-		glColor4f(0, 0, 0, 1.0);
-		glVertex2f(robots[j]->pos[0], robots[j]->pos[1]);
-		glVertex2f(robots[j]->pos[0] + cos(robots[j]->pos[2])*radius, robots[j]->pos[1] + sin(robots[j]->pos[2])*radius);
+		glEnd();
+
+		glColor3f(1.0f, 0.0f, 0.0f);
+		glRectd(495, 595, 505, 605);
+
+		cout << time_sim << endl;
+		time_sim = time_sim + 1;
+		glFlush();
+		glutSwapBuffers();
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	}
-
-	glBegin(GL_LINES);
-	glEnd();
-
-	glColor3f(1.0f, 0.0f, 0.0f);
-	glRectd(495, 595, 505, 605);
-
-	cout << time_sim << endl;
-	time_sim = time_sim + 1;
-	glFlush();
-	glutSwapBuffers();
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
 
 // Initialization routine.

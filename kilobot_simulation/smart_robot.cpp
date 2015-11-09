@@ -27,13 +27,19 @@ class smart_robot : public robot
 		finish
 	};
 
+	int disks = 12;
+	int disks_size[12] = { 10,10,10,10,10,10,10,10,10,10,10,10 };
+	int disks_center_x[12] = { 800,  800,  800,  800, 1100, 1600, 2000, 2400, 2700, 2700, 2700, 2700 };
+	int disks_center_y[12] = { 800, 1200, 1600, 2200, 2500, 2500, 2500, 2500, 2200, 1600, 1200,  800 };
+	static bool disks_completed[12];
+	static int disks_ids[12];
 
-	int disks = 3;
-	int disks_size[3] = { 2, 2, 0 };
-	int disks_center_x[3] = { 400, 500, 10000 };
-	int disks_center_y[3] = { 800, 600, 10000 };
-	bool disks_completed[3] = { false,false,false };
-	int disks_ids[3] = { 0,0,0 };
+	static void claimDisk()
+	{
+		disks_ids=
+	}
+
+
 	int closest_disk = -1;
 	behavior_enum behavior = finding; // 1 - identify the closest circle center 2 - moving toward a circle center 3 - recruiting a seed
 	double prev_pos[3];
@@ -42,6 +48,9 @@ class smart_robot : public robot
 
 	void robot::controller()
 	{
+		color[0] = 1;
+		color[1] = 1;
+		color[2] = 1;
 		switch(behavior)
 		{ 
 			case finding:
@@ -61,7 +70,7 @@ class smart_robot : public robot
 			}
 			case evading: //we are stuck... lets evade
 			{
-				evadeObstacle();
+				evadeObstacle(false);
 				break;
 			}
 			case registering:
@@ -76,23 +85,6 @@ class smart_robot : public robot
 	{
 	}
 
-	bool robot::comm_out_criteria(double x, double y)
-	{
-		if (x < pos[0] - radius || x > pos[0] + radius || y < pos[1] - radius || y > pos[1] + radius) return false;
-		if ( robot::distance(pos[0], pos[1], x, y) > radius) return false; //robot within com range, put transmitting robots data in its data_in struct
-		double theta = find_theta(pos[0], pos[1], x, y);
-		if (pos[2] > theta - .2 && pos[2] < theta + .2)
-		{
-			return true;
-		}
-		return false;
-	}
-	bool robot::comm_in_criteria(double x, double y) //omnidirectional
-	{
-		if (gauss_rand(timer) < .90) return true;
-		return false;
-	}
-	
 	void findClosestDisk()
 	{
 		double dist = 0;
@@ -146,10 +138,7 @@ class smart_robot : public robot
 
 		data_out.id = id;
 		data_out.message = signal_smart + signal_recruit + closest_disk;
-		if (!(steps % 5))
-		{
-			tx_request = 1;
-		}
+		tx_request = 1;
 	}
 	void moveToDestination()
 	{
@@ -162,55 +151,44 @@ class smart_robot : public robot
 			return;
 		}
 		//darn, we are not there
-		// let's find if we are pointing in the right direction
+
+		//let's see if we are stuck
+		if ((steps % 200) == 0)
+		{
+			if (distance(prev_pos[0], prev_pos[1], pos[0], pos[1]) < min_movement)
+			{
+				steps = 0;
+				behavior = evading; //evade the obstacle
+				evadeObstacle(true);
+				return;
+			}
+			//let's record our new position
+			recordPosition();
+			steps = 0;
+		}
+
+		// let's find the direction we need to move to
 		double target_tetha = find_theta(pos[X], pos[Y], destination[0], destination[1]);
-		if ((target_tetha - .1 < pos[T]) && (target_tetha + .1 > pos[T]))
+		// lets move 
+		motor_command = defineAction(pos[T],target_tetha);
+	}
+
+	int defineAction(double at, double tt)
+	{
+		double td = robot::tetha_diff(at, tt);
+		if ((td > -.1 ) && (td < .1))
 		{
 			// hurray we are pointing in the right direction!
-
-			//let's see if we are stuck
-			if ((steps % 200) == 0)
-			{
-				if (distance(prev_pos[0], prev_pos[1], pos[0], pos[1]) < min_movement)
-				{
-					steps = 0;
-					behavior = evading; //evade the obstacle
-					return;
-				}
-				//let's record our new position
-				prev_pos[0] = pos[0];
-				prev_pos[1] = pos[1];
-				prev_pos[2] = pos[2];
-				steps = 0;
-			}
-			motor_command = 1;// lets move forward
-			return;
+			return forward;
 		}
 		// terrible luck today... let's correct the direction
-		steps = 0;
-		color[0] = 1;
-		color[1] = 0;
-		color[2] = 0;
-		if (target_tetha > pos[T])
+		if (td>0)
 		{
-			if (target_tetha < pos[T] + PI)
-			{
-				motor_command = 2;
-			}
-			else
-			{
-				motor_command = 3;
-			}
+			return left;
 		}
-		else {
-			if (target_tetha + PI < pos[T])
-			{
-				motor_command = 2;
-			}
-			else
-			{
-				motor_command = 3;
-			}
+		else
+		{
+			return right;
 		}
 	}
 
@@ -236,29 +214,25 @@ class smart_robot : public robot
 		}
 		data_out.id = id;
 		data_out.message = signal_smart + signal_gradient + disks_size[closest_disk];
-		if (!(steps % 10))
-		{
-			tx_request = 1;
-		}
+		tx_request = 1;
 	}
 
-	void evadeObstacle()
+	void evadeObstacle(bool reset)
 	{
-		if (steps < 100)
-		{
-			motor_command = 2;
+		static int rnd_steps;
+		static int rnd_direction;
+		if (reset) 
+		{ 
+			rnd_steps = timer % 200; 
+			rnd_direction = (timer % 2 + 2);
 		}
-		else if (steps < 200)
+		if (steps < rnd_steps)
 		{
-			motor_command = 1;
+			motor_command = rnd_direction;
 		}
-		else if (steps < 300)
+		else if (steps < rnd_steps * 3)
 		{
-			motor_command = 3;
-		}
-		else if (steps < 400)
-		{
-			motor_command = 1;
+			motor_command = forward;
 		}
 		else {
 			behavior = moving;
@@ -271,6 +245,25 @@ class smart_robot : public robot
 		prev_pos[X] = pos[X];
 		prev_pos[Y] = pos[Y];
 		prev_pos[T] = pos[T];
+	}
+
+	bool robot::comm_out_criteria(double x, double y)
+	{
+		static double diameter = 2 * radius+1;
+		if (x < pos[0] - diameter || x > pos[0] + diameter || y < pos[1] - diameter || y > pos[1] + diameter) return false;
+		if (robot::distance(pos[0], pos[1], x, y) > diameter) return false; //robot within com range, put transmitting robots data in its data_in struct
+		double theta = find_theta(pos[0], pos[1], x, y);
+		double td = robot::tetha_diff(pos[2], theta);
+		if (abs(td)<.5)
+		{
+			return true;
+		}
+		return false;
+	}
+	bool robot::comm_in_criteria(double x, double y) //omnidirectional
+	{
+		if (gauss_rand(timer) < .90) return true;
+		return false;
 	}
 
 };

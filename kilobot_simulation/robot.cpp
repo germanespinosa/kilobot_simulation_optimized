@@ -22,5 +22,3 @@ void robot::robot_init(int x, int y, int t)
 	motor_error = robot::gauss_rand(timer)*motion_error_std;
 	init();
 }
-
-

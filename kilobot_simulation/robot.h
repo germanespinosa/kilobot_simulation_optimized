@@ -5,6 +5,9 @@
 #define motion_error_std .007
 #define PI 3.14159265358979324
 #define GAUSS 10000
+#define forward 1
+#define right 2
+#define left 3
 
 class robot
 {
@@ -89,6 +92,20 @@ public:
 			pseudogaus_rand[i] = gaussrand();
 		};
 		pseudogaus_rand[GAUSS] = 1;
+		return pseudogaus_rand[timer % GAUSS];
+	}
+	static double tetha_diff(double t1, double t2)
+	{
+		double diff = t1 - t2;
+		if (diff < -PI)
+		{
+			diff += 2 * PI;
+		}
+		else if (diff>PI)
+		{
+			diff -= 2 * PI;
+		}
+		return diff;
 	}
 
 private:

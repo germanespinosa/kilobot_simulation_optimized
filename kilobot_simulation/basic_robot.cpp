@@ -91,10 +91,7 @@ class basic_robot : public robot
 				color[2] = 0;
 				data_out.id = id;
 				data_out.message = signal_basic + signal_recruit;
-				if (!(steps % 10))
-				{
-					tx_request = 1;
-				}
+				tx_request = 1;
 				break;
 			}
 		case 3:
@@ -137,8 +134,8 @@ class basic_robot : public robot
 						color[0] = 1;
 						color[1] = 0;
 						color[2] = 0;
-						tx_request = 1;
 					}
+					tx_request = 1;
 				}else{
 					color[0] = 0;
 					color[1] = 1;
@@ -155,8 +152,9 @@ class basic_robot : public robot
 	}
 	bool robot::comm_out_criteria(double x, double y) //stardard circular transmission area
 	{
-		if (x < pos[0] - radius || x > pos[0] + radius || y < pos[1] - radius || y > pos[1] + radius) return false;
-		return robot::distance(pos[0],pos[1],x,y) <= radius; //robot within com range, put transmitting robots data in its data_in struct
+		static double diameter = 2 * radius+1;
+		if (x < pos[0] - diameter || x > pos[0] + diameter || y < pos[1] - diameter || y > pos[1] + diameter) return false;
+		return robot::distance(pos[0],pos[1],x,y) <= diameter; //robot within com range, put transmitting robots data in its data_in struct
 	}
 	bool robot::comm_in_criteria(double x, double y) //omnidirectional
 	{
