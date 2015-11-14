@@ -31,13 +31,8 @@ class smart_robot : public robot
 	int disks_size[12] = { 10,10,10,10,10,10,10,10,10,10,10,10 };
 	int disks_center_x[12] = { 800,  800,  800,  800, 1100, 1600, 2000, 2400, 2700, 2700, 2700, 2700 };
 	int disks_center_y[12] = { 800, 1200, 1600, 2200, 2500, 2500, 2500, 2500, 2200, 1600, 1200,  800 };
-	static bool disks_completed[12];
-	static int disks_ids[12];
-
-	static void claimDisk()
-	{
-		disks_ids=
-	}
+	bool disks_completed[12];
+	int disks_ids[12];
 
 
 	int closest_disk = -1;

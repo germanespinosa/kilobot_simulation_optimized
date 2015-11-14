@@ -26,6 +26,7 @@ float zoom, view_x, view_y; //var. for zoom and scroll
 
 
 robot** robots = new robot*[num_robots];//creates an array of robots
+int safe_distance[num_robots][num_robots];
 
 //check to see if motion causes robots to collide
 int find_collisions(int id, double x, double y)
@@ -41,17 +42,40 @@ int find_collisions(int id, double x, double y)
 	{
 		if (i != id)
 		{
-
-			if (x_ulim>robots[i]->pos[0] && x_llim<robots[i]->pos[0] && 
-				y_ulim>robots[i]->pos[1] && y_llim<robots[i]->pos[1]) //if not in the sqare limits, i dont even check the circular ones
+			if (safe_distance[id][i])
 			{
-
+				safe_distance[id][i]--;
+			}
+			else
+			{
 				int dist_x = x - robots[i]->pos[0];
 				int dist_y = y - robots[i]->pos[1];
-				double distance = sqrt(dist_x*dist_x + dist_y * dist_y);
-				if (distance < two_r)
+				if (x_ulim > robots[i]->pos[0] && x_llim<robots[i]->pos[0] &&
+					y_ulim>robots[i]->pos[1] && y_llim < robots[i]->pos[1]) //if not in the sqare limits, i dont even check the circular ones
 				{
-					return 1;
+
+					double distance = sqrt(dist_x*dist_x + dist_y * dist_y);
+					if (distance < two_r)
+					{
+						return 1;
+					}
+				}
+				else
+				{
+					int bd = 0;
+					if (abs(dist_x)>abs(dist_x))
+					{
+						bd = abs(dist_x);
+					}
+					else
+					{
+						bd = abs(dist_y);
+					}
+					if (bd > 2 * two_r)
+					{
+						safe_distance[id][i] = (bd - 2 * two_r) / 5;
+						safe_distance[i][id] = (bd - 2 * two_r) / 5;
+					}
 				}
 			}
 		}
@@ -249,6 +273,10 @@ void drawScene(void)
 // Initialization routine.
 void setup(void)
 {
+	for (int i = 0;i < num_robots;i++)
+		for (int j = 0;j < num_robots;j++)
+			safe_distance[i][j] = 0;
+
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
 	glOrtho(0.0f, 1000, 1000, 0.0f, 0.0f, 1.0f);
