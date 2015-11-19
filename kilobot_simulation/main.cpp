@@ -142,14 +142,15 @@ void drawScene(void)
 	for (i = 0;i < num_robots;i++)
 	{
 		//if robot wants to communicate, send message to all robots within distance comm_range
-		if (robots[order[i]]->tx_request == 1)
+		if (robots[order[i]]->tx_request != 0)
 		{
+			int channel = robots[order[i]]->tx_request;
 			robots[order[i]]->tx_request = 0;//clear transmission flag
 			for (j = 0;j < num_robots;j++)
 			{
 				if (j != order[i])
 				{
-					if (robots[order[i]]->comm_out_criteria(robots[j]->pos[0],robots[j]->pos[1]) && robots[j]->comm_in_criteria(robots[order[i]]->pos[0], robots[order[i]]->pos[1]))
+					if (robots[order[i]]->comm_out_criteria(channel, robots[j]->pos[0],robots[j]->pos[1]) && robots[j]->comm_in_criteria(channel, robots[order[i]]->pos[0], robots[order[i]]->pos[1]))
 					{
 						double distance = sqrt((robots[j]->pos[0] - robots[order[i]]->pos[0])*(robots[j]->pos[0] - robots[order[i]]->pos[0]) + (robots[j]->pos[1] - robots[order[i]]->pos[1])*(robots[j]->pos[1] - robots[order[i]]->pos[1]));
 						robots[j]->incoming_message_flag = 1;

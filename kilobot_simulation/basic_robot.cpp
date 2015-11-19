@@ -150,14 +150,16 @@ class basic_robot : public robot
 		steps = timer % 600;
 		comm_range = 60;
 	}
-	bool robot::comm_out_criteria(double x, double y) //stardard circular transmission area
+	bool robot::comm_out_criteria(int c, double x, double y) //stardard circular transmission area
 	{
+		if (c != 1) return false;
 		static double diameter = 2 * radius+1;
 		if (x < pos[0] - diameter || x > pos[0] + diameter || y < pos[1] - diameter || y > pos[1] + diameter) return false;
 		return robot::distance(pos[0],pos[1],x,y) <= diameter; //robot within com range, put transmitting robots data in its data_in struct
 	}
-	bool robot::comm_in_criteria(double x, double y) //omnidirectional
+	bool robot::comm_in_criteria(int c, double x, double y) //omnidirectional
 	{
+		if (c != 1) return false;
 		if (gauss_rand(timer) < .90) return true;
 		return false;
 	}

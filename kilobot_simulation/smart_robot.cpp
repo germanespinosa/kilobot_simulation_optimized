@@ -46,6 +46,7 @@ class smart_robot : public robot
 		color[0] = 1;
 		color[1] = 1;
 		color[2] = 1;
+		checkIncoming();
 		switch(behavior)
 		{ 
 			case finding:
@@ -119,7 +120,7 @@ class smart_robot : public robot
 		color[1] = 0;
 		color[2] = 1;
 		//let's check if somebody received the message, we have a possible seed
-		if (incoming_message_flag)
+		if (incoming_message_flag==1)
 		{
 			incoming_message_flag = 0;
 			if (data_in.message == signal_basic + signal_recruit)
@@ -189,7 +190,7 @@ class smart_robot : public robot
 
 	void registerSeed()
 	{
-		if (incoming_message_flag)
+		if (incoming_message_flag==1)
 		{
 			incoming_message_flag = 0;
 			if (data_in.message & signal_basic && data_in.message & signal_recruit && data_in.message & signal_gradient)
@@ -210,6 +211,17 @@ class smart_robot : public robot
 		data_out.id = id;
 		data_out.message = signal_smart + signal_gradient + disks_size[closest_disk];
 		tx_request = 1;
+	}
+
+	void checkIncoming()
+	{
+		if (incoming_message_flag == 2)
+		{
+			//if (data_in.message && signal_claim)
+			{
+				
+			}
+		}
 	}
 
 	void evadeObstacle(bool reset)
@@ -242,22 +254,42 @@ class smart_robot : public robot
 		prev_pos[T] = pos[T];
 	}
 
-	bool robot::comm_out_criteria(double x, double y)
+	bool robot::comm_out_criteria(int c, double x, double y)
 	{
-		static double diameter = 2 * radius+1;
-		if (x < pos[0] - diameter || x > pos[0] + diameter || y < pos[1] - diameter || y > pos[1] + diameter) return false;
-		if (robot::distance(pos[0], pos[1], x, y) > diameter) return false; //robot within com range, put transmitting robots data in its data_in struct
-		double theta = find_theta(pos[0], pos[1], x, y);
-		double td = robot::tetha_diff(pos[2], theta);
-		if (abs(td)<.5)
+		switch (c)
 		{
-			return true;
+			case 1:
+			{
+				static double diameter = 2 * radius + 1;
+				if (x < pos[0] - diameter || x > pos[0] + diameter || y < pos[1] - diameter || y > pos[1] + diameter) return false;
+				if (robot::distance(pos[0], pos[1], x, y) > diameter) return false; //robot within com range, put transmitting robots data in its data_in struct
+				double theta = find_theta(pos[0], pos[1], x, y);
+				double td = robot::tetha_diff(pos[2], theta);
+				if (abs(td) < .5)
+				{
+					return true;
+				}
+			}
+			case 2:
+			{
+				return true;
+			}
 		}
 		return false;
 	}
-	bool robot::comm_in_criteria(double x, double y) //omnidirectional
+	bool robot::comm_in_criteria(int c, double x, double y) //omnidirectional
 	{
-		if (gauss_rand(timer) < .90) return true;
+		switch (c)
+		{
+			case 1:
+			{
+				if (gauss_rand(timer) < .90) return true;
+			}
+			case 2:
+			{
+				return true;
+			}
+		}
 		return false;
 	}
 
