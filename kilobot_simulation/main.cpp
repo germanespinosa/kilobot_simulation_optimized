@@ -19,7 +19,7 @@ using namespace std;
 #define p_control_execute .99 // probability of a controller executing its time step
 #define arena_width 5000
 #define arena_height 5000
-#define SKIPFRAMES 2
+#define SKIPFRAMES 10
 // Global vars.
 double time_sim;  //simulation time
 float zoom, view_x, view_y; //var. for zoom and scroll
@@ -224,12 +224,23 @@ void drawScene(void)
 	}
 
 	//draws the arena
-	glColor3b(0, 255, 0);
+	glColor4f(0, 0, 0, 0);
 	glRectd(0, 0, arena_width, arena_height);
 
 	//draw robots
 	static int lastrun = 0;
+
 	lastrun++;
+
+	int secs = lastrun / 10;
+	int mins = secs / 60;
+	secs = secs % 60;
+	int hours = mins / 60;
+	mins = mins % 60;
+	char rt[100];
+	sprintf_s(rt,"simulated running time %02d:%02d:%02d", hours, mins, secs);
+	glutSetWindowTitle(rt);
+
 	if (!(lastrun % (SKIPFRAMES+1)))
 	{
 		int triangleAmount = 260 / zoom * 50 + 20; //level of detail is determined by the zoom
@@ -256,19 +267,17 @@ void drawScene(void)
 			glVertex2f(robots[j]->pos[0], robots[j]->pos[1]);
 			glVertex2f(robots[j]->pos[0] + cos(robots[j]->pos[2])*radius, robots[j]->pos[1] + sin(robots[j]->pos[2])*radius);
 		}
-
-		glBegin(GL_LINES);
 		glEnd();
-
-		glColor3f(1.0f, 0.0f, 0.0f);
-		glRectd(495, 595, 505, 605);
-
 		cout << time_sim << endl;
-		time_sim = time_sim + 1;
 		glFlush();
 		glutSwapBuffers();
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	}else{
+		glEnd();
+		cout << time_sim << endl;
 	}
+	
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	time_sim++;
 }
 
 // Initialization routine.
