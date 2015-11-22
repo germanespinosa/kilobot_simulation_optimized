@@ -11,15 +11,15 @@ using namespace std;
 #define delay 0 //delay between time steps, use if program is too fast
 #define windowWidth 500 //display window
 #define windowHeight 500 //display window
-#define num_robots 1500 //number of robots running
-#define num_smart_robots 1 //number of robots running
+#define num_robots 1000 //number of robots running
+#define num_smart_robots 10 //number of robots running
 #define comm_noise_std 5 //standard dev. of sensor noise
 #define PI 3.14159265358979324
 #define radius 20 //radius of a robot
 #define p_control_execute .99 // probability of a controller executing its time step
 #define arena_width 5000
 #define arena_height 5000
-#define SKIPFRAMES 10
+#define SKIPFRAMES 4
 // Global vars.
 double time_sim;  //simulation time
 float zoom, view_x, view_y; //var. for zoom and scroll
@@ -73,8 +73,8 @@ int find_collisions(int id, double x, double y)
 					}
 					if (bd > 2 * two_r)
 					{
-						safe_distance[id][i] = (bd - 2 * two_r) / 5;
-						safe_distance[i][id] = (bd - 2 * two_r) / 5;
+						safe_distance[id][i] = (bd - 2 * two_r) / 3;
+						safe_distance[i][id] = safe_distance[id][i];
 					}
 				}
 			}
@@ -150,13 +150,18 @@ void drawScene(void)
 			{
 				if (j != order[i])
 				{
-					if (robots[order[i]]->comm_out_criteria(channel, robots[j]->pos[0],robots[j]->pos[1]) && robots[j]->comm_in_criteria(channel, robots[order[i]]->pos[0], robots[order[i]]->pos[1]))
+					if (robots[j]->incoming_message_flag <= channel)
 					{
-						double distance = sqrt((robots[j]->pos[0] - robots[order[i]]->pos[0])*(robots[j]->pos[0] - robots[order[i]]->pos[0]) + (robots[j]->pos[1] - robots[order[i]]->pos[1])*(robots[j]->pos[1] - robots[order[i]]->pos[1]));
-						robots[j]->incoming_message_flag = 1;
-						robots[j]->data_in = robots[order[i]]->data_out;
-						robots[j]->data_in.distance = distance;
-
+						if (!safe_distance[i][j] || channel>1 )
+						{ 
+							if (robots[order[i]]->comm_out_criteria(channel, robots[j]->pos[0], robots[j]->pos[1]) && robots[j]->comm_in_criteria(channel, robots[order[i]]->pos[0], robots[order[i]]->pos[1]))
+							{
+								double distance = sqrt((robots[j]->pos[0] - robots[order[i]]->pos[0])*(robots[j]->pos[0] - robots[order[i]]->pos[0]) + (robots[j]->pos[1] - robots[order[i]]->pos[1])*(robots[j]->pos[1] - robots[order[i]]->pos[1]));
+								robots[j]->incoming_message_flag = channel;
+								robots[j]->data_in = robots[order[i]]->data_out;
+								robots[j]->data_in.distance = distance;
+							}
+						}
 					}
 				}
 			}
@@ -241,7 +246,7 @@ void drawScene(void)
 	sprintf_s(rt,"simulated running time %02d:%02d:%02d", hours, mins, secs);
 	glutSetWindowTitle(rt);
 
-	if (!(lastrun % (SKIPFRAMES+1)))
+	if (!(lastrun % (SKIPFRAMES+1)) && lastrun>100)
 	{
 		int triangleAmount = 260 / zoom * 50 + 20; //level of detail is determined by the zoom
 		GLfloat twicePi = 2.0f * PI;
@@ -268,15 +273,11 @@ void drawScene(void)
 			glVertex2f(robots[j]->pos[0] + cos(robots[j]->pos[2])*radius, robots[j]->pos[1] + sin(robots[j]->pos[2])*radius);
 		}
 		glEnd();
-		cout << time_sim << endl;
 		glFlush();
 		glutSwapBuffers();
-	}else{
-		glEnd();
-		cout << time_sim << endl;
-	}
-	
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	}	
+	cout << time_sim << endl;
 	time_sim++;
 }
 
@@ -353,8 +354,19 @@ void setup_positions()
 	int rows = (int)(num_robots / columns);
 	if (num_robots % columns) rows++;
 	int horizontal_separation = arena_width / (columns + 1);
-    int vertical_separation = (int) arena_height / rows;
-
+    int vertical_separation = (int) arena_height / (rows+1);
+	bool smart[num_robots];
+	for (int i = 0;i < num_robots;i++)
+		smart[i] = false;
+	for (int i = 0;i < num_smart_robots;i++)
+	{
+		int x = 0;
+		do
+		{
+			x = rand() * num_robots / RAND_MAX;
+		} while (smart[x]);
+		smart[x] = true;
+	}
 	for (int i = 0;i < num_robots;i++)
 	{
 		int c = i % columns + 1;
@@ -363,14 +375,15 @@ void setup_positions()
 		int x = c * horizontal_separation  + hr ;
 		int vr = rand() % (vertical_separation/2) + vertical_separation / 4;
 		int y = r * vertical_separation + vr;
-		if (i < num_smart_robots)
+		if (smart[i])
 		{
 			robots[k] = new smart_robot();
 		}else
 		{	
 			robots[k] = new basic_robot();
 		}
-		robots[k]->robot_init(x, y, i);
+		double t = rand() * 2 * PI / RAND_MAX;
+		robots[k]->robot_init(x, y, t);
 		k++;
 	}
 }

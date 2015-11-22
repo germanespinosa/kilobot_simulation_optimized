@@ -7,7 +7,7 @@ void robot::robot_controller()
 	controller();
 }
 
-void robot::robot_init(int x, int y, int t)
+void robot::robot_init(double x, double y, double t)
 {
 	//initalize robot variables
 	pos[0] = x;

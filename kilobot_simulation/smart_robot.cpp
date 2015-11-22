@@ -1,10 +1,14 @@
 #include "robot.h"
 #include <iostream>
 
-#define signal_basic 256
-#define signal_smart 128
-#define signal_gradient 64
-#define signal_recruit 32
+#define signal_basic 65536
+#define signal_smart 32768
+#define signal_gradient 16384
+#define signal_recruit 8192
+#define signal_claim 4096
+#define mask_size 31
+#define mask_delay 992
+
 
 #define min_movement 40
 #define tolerance 50
@@ -14,6 +18,41 @@
 #define X 0
 #define Y 1
 #define T 2
+
+
+class FigureHorseShoe
+{
+public:
+	int disks = 23;
+	int disks_size[23] = { 10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10 };
+	int disks_center_x[23] = { 1800, 1800, 1800, 1800, 1800, 1800, 1800, 1950, 2100, 2300, 2500, 2700, 2900, 3100, 3300, 3450, 3600, 3600, 3600, 3600, 3600, 3600, 3600 };
+	int disks_center_y[23] = { 1800, 2000, 2200, 2400, 2600, 2800, 3000, 3150, 3300, 3300, 3300, 3300, 3300, 3300, 3300, 3150, 3000, 2800, 2600, 2400, 2200, 2000, 1800 };
+	int disks_status[23];
+	int disks_ids[23];
+};
+
+class FigureX
+{
+public:
+	int disks = 20;
+	int disks_size[20] = { 10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10 };
+	int disks_wait[20] = { 8,8,6,6,1,1,6,6,8,8,8,8,6,6,1,1,6,6,8,8 };
+	int disks_center_x[20] = { 1800, 2000, 2200, 2400, 2600, 2800, 3000, 3200, 3400, 3600, 1800, 2000, 2200, 2400, 2600, 2800, 3000, 3200, 3400, 3600 };
+	int disks_center_y[20] = { 1800, 2000, 2200, 2400, 2600, 2800, 3000, 3200, 3400, 3600, 3600, 3400, 3200, 3000, 2800, 2600, 2400, 2200, 2000, 1800 };
+	int disks_status[20];
+	int disks_ids[20];
+};
+
+class FigureLine
+{
+public:
+	int disks = 23;
+	int disks_size[23] = { 10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10 };
+	int disks_center_x[23] = { 1800, 2000, 2200, 2400, 2600, 2800, 3000, 3200, 3400, 3600, 1800, 2000, 2200, 2400, 2600, 2800, 3000, 3200, 3400, 3600 };
+	int disks_center_y[23] = { 1800, 2000, 2200, 2400, 2600, 2800, 3000, 3200, 3400, 3600, 3600, 3400, 3200, 3000, 2800, 2600, 2400, 2200, 2000, 1800 };
+	int disks_status[23];
+	int disks_ids[23];
+};
 
 class smart_robot : public robot
 {
@@ -27,13 +66,7 @@ class smart_robot : public robot
 		finish
 	};
 
-	int disks = 12;
-	int disks_size[12] = { 10,10,10,10,10,10,10,10,10,10,10,10 };
-	int disks_center_x[12] = { 1800, 1800, 1800, 1800, 2100, 2600, 3000, 3400, 3700, 3700, 3700, 3700 };
-	int disks_center_y[12] = { 1800, 2200, 2600, 3200, 3500, 3500, 3500, 3500, 3200, 2600, 2200, 1800 };
-	bool disks_completed[12];
-	int disks_ids[12];
-
+	FigureX f;
 
 	int closest_disk = -1;
 	behavior_enum behavior = finding; // 1 - identify the closest circle center 2 - moving toward a circle center 3 - recruiting a seed
@@ -44,8 +77,8 @@ class smart_robot : public robot
 	void robot::controller()
 	{
 		color[0] = 1;
-		color[1] = 1;
-		color[2] = 1;
+		color[1] = 0;
+		color[2] = 0;
 		checkIncoming();
 		switch(behavior)
 		{ 
@@ -79,17 +112,20 @@ class smart_robot : public robot
 	}
 	void robot::init()
 	{
+
+		for each(int i in f.disks_status)
+			i = 0;
 	}
 
 	void findClosestDisk()
 	{
 		double dist = 0;
 		closest_disk = -1;
-		for (int i = 0;i < disks;i++)
+		for (int i = 0;i < f.disks;i++)
 		{
-			if (!disks_completed[i])
+			if (f.disks_status[i]==0)
 			{
-				double newdist = distance(disks_center_x[i], disks_center_y[i], pos[X], pos[Y]);
+				double newdist = distance(f.disks_center_x[i], f.disks_center_y[i], pos[X], pos[Y]);
 				if (dist > newdist || closest_disk == -1)
 				{
 					dist = newdist;
@@ -97,14 +133,17 @@ class smart_robot : public robot
 				};
 			};
 		}
-		if (closest_disk == -1) // we're done
+		if (closest_disk == -1) // Let's go back to base
 		{
-			behavior = finish;
+			destination[0] = 2500;
+			destination[1] = 200;
+			behavior = moving;
 			return;
 		}
 		//let's record our position to know if we are moving
+		claimDisk(closest_disk);
 		recordPosition();
-		setDestination(disks_center_x[closest_disk], disks_center_y[closest_disk]);
+		setDestination(f.disks_center_x[closest_disk], f.disks_center_y[closest_disk]);
 		behavior = moving; // move toward the closest disk
 	}
 
@@ -123,17 +162,20 @@ class smart_robot : public robot
 		if (incoming_message_flag==1)
 		{
 			incoming_message_flag = 0;
-			if (data_in.message == signal_basic + signal_recruit)
+			if (data_in.message == signal_basic + signal_gradient)
 			{
-				disks_ids[closest_disk] = data_in.id;
+				f.disks_ids[closest_disk] = data_in.id;
 				steps = 0;
-				behavior = registering;
+				behavior = finding;
 				return;
 			}
 		}
 
+		int msg = f.disks_wait[closest_disk];
+		msg = msg << 5;
+		msg = msg + f.disks_size[closest_disk];
 		data_out.id = id;
-		data_out.message = signal_smart + signal_recruit + closest_disk;
+		data_out.message = signal_smart + signal_recruit + msg;
 		tx_request = 1;
 	}
 	void moveToDestination()
@@ -142,8 +184,16 @@ class smart_robot : public robot
 		if (distance(pos[X], pos[Y], destination[0], destination[1]) < tolerance)
 		{
 			//hurray we are there!
+			if (closest_disk >= 0)
+			{
+				claimDisk(closest_disk);
+				behavior = recruiting; //recruiting
+			}
+			else
+			{
+				behavior = finish;
+			}
 			motor_command = 4;
-			behavior = recruiting; //recruiting
 			return;
 		}
 		//darn, we are not there
@@ -188,6 +238,14 @@ class smart_robot : public robot
 		}
 	}
 
+	void claimDisk(int diskId)
+	{
+		f.disks_status[diskId] = 1;
+		data_out.id = id;
+		data_out.message = signal_smart + signal_claim + diskId;
+		tx_request = 2;
+	}
+
 	void registerSeed()
 	{
 		if (incoming_message_flag==1)
@@ -195,9 +253,9 @@ class smart_robot : public robot
 			incoming_message_flag = 0;
 			if (data_in.message & signal_basic && data_in.message & signal_recruit && data_in.message & signal_gradient)
 			{
-				if (disks_ids[closest_disk] == data_in.id)
+				if (f.disks_ids[closest_disk] == data_in.id)
 				{
-					disks_completed[closest_disk] = true;
+					f.disks_status[closest_disk] = true;
 					behavior = finding;
 					return;
 				}
@@ -209,7 +267,7 @@ class smart_robot : public robot
 			return;
 		}
 		data_out.id = id;
-		data_out.message = signal_smart + signal_gradient + disks_size[closest_disk];
+		data_out.message = signal_smart + signal_gradient + f.disks_size[closest_disk];
 		tx_request = 1;
 	}
 
@@ -217,9 +275,26 @@ class smart_robot : public robot
 	{
 		if (incoming_message_flag == 2)
 		{
-			//if (data_in.message && signal_claim)
+			incoming_message_flag = 0;
+			if (data_in.message && signal_claim)
 			{
-				
+				int diskId = data_in.message - signal_smart - signal_claim;
+				if (f.disks_status[diskId] == 1)
+				{
+					if (data_in.id > id)
+					{
+						behavior = finding;
+						f.disks_status[diskId] = 2;
+					}
+					else
+					{
+						claimDisk(diskId);
+					}
+				}
+				else
+				{
+					f.disks_status[diskId] = 2;
+				}
 			}
 		}
 	}
@@ -230,7 +305,7 @@ class smart_robot : public robot
 		static int rnd_direction;
 		if (reset) 
 		{ 
-			rnd_steps = timer % 200; 
+			rnd_steps = timer % 199; 
 			rnd_direction = (timer % 2 + 2);
 		}
 		if (steps < rnd_steps)
@@ -263,12 +338,7 @@ class smart_robot : public robot
 				static double diameter = 2 * radius + 1;
 				if (x < pos[0] - diameter || x > pos[0] + diameter || y < pos[1] - diameter || y > pos[1] + diameter) return false;
 				if (robot::distance(pos[0], pos[1], x, y) > diameter) return false; //robot within com range, put transmitting robots data in its data_in struct
-				double theta = find_theta(pos[0], pos[1], x, y);
-				double td = robot::tetha_diff(pos[2], theta);
-				if (abs(td) < .5)
-				{
-					return true;
-				}
+				return true;
 			}
 			case 2:
 			{
@@ -292,5 +362,5 @@ class smart_robot : public robot
 		}
 		return false;
 	}
-
 };
+

@@ -1,9 +1,12 @@
 #include "robot.h"
 
-#define signal_basic 256
-#define signal_smart 128
-#define signal_gradient 64
-#define signal_recruit 32
+#define signal_basic 65536
+#define signal_smart 32768
+#define signal_gradient 16384
+#define signal_recruit 8192
+#define signal_claim 4096
+#define mask_size 31
+#define mask_delay 992
 
 
 #define radius 20 //radius of a robot
@@ -14,7 +17,12 @@ class basic_robot : public robot
 	int disk_id = 0;
 	int disk_size = 0;
 	int steps = 0;
-	
+	int final_disk_size = 0;
+	bool seed=false;
+	int turning_direction = 0;
+	int turning_duration = 0;
+	int wait = 0;
+
 	void robot::controller()
 	{	
 		switch (behavior)
@@ -28,38 +36,34 @@ class basic_robot : public robot
 					if (data_in.message & signal_smart && data_in.message & signal_recruit)
 					{
 						//i'll be a seed! how exiting!
-						disk_id = data_in.message & 31;
 						motor_command = 4;
+						seed = true;
+						final_disk_size = data_in.message & mask_size;
+						wait = (data_in.message & mask_delay) >> 5;
+						disk_size = 0;
 						behavior = 2;
 						steps = 0;
 						break;
 					}
 					if (data_in.message & signal_basic && data_in.message & signal_recruit && data_in.message & signal_gradient)
 					{
+						motor_command = 4;
 						disk_size = (data_in.message & 31)-1;
 						behavior = 3;
 						break;
 					}
 				}
-				
-				if (steps < 100)
+				if (steps < turning_duration)
 				{
-					motor_command = 2;
+					motor_command = turning_direction;
 				}
-				else if (steps < 300)
-				{
-					motor_command = 1;
-				}
-				else if (steps < 400)
-				{
-					motor_command = 3;
-				}
-				else if (steps < 600)
+				else if (steps < 11 * turning_duration)
 				{
 					motor_command = 1;
 				}
-				else {
-					steps = 0;
+				else 
+				{
+					randomize_behavior();
 				}
 				color[0] = 0;
 				color[1] = 1;
@@ -68,29 +72,15 @@ class basic_robot : public robot
 			}	
 		case 2:
 			{
-				if (incoming_message_flag)
+				if (steps >= (1000 * wait)+10)
 				{
-					incoming_message_flag = 0;
-					if (data_in.message & signal_smart && data_in.message & signal_gradient)
-					{
-						disk_size = data_in.message & 31;
-						behavior = 3;
-						color[0] = 1;
-						color[1] = 1;
-						color[2] = 1;
-					}
+					behavior = 3;
 				}
-				if (steps >= 500)
-				{
-					//looks like we lost touch with the smart robot... let's go back to wander mode
-					behavior = 1;
-					break;
-				}
-				color[0] = 1;
-				color[1] = 1;
-				color[2] = 0;
 				data_out.id = id;
-				data_out.message = signal_basic + signal_recruit;
+				data_out.message = signal_basic + signal_gradient;
+				color[0] = 1;
+				color[1] = 0;
+				color[2] = 1;
 				tx_request = 1;
 				break;
 			}
@@ -100,7 +90,7 @@ class basic_robot : public robot
 				if (incoming_message_flag)
 				{
 					incoming_message_flag = 0;
-					if (data_in.message & signal_basic && data_in.message & signal_recruit && data_in.message & signal_gradient)
+					if (!seed && data_in.message & signal_basic && data_in.message & signal_recruit && data_in.message & signal_gradient)
 					{
 						if (disk_size < (data_in.message & 31)-1)
 						{
@@ -111,17 +101,11 @@ class basic_robot : public robot
 							color[2] = 1;
 						}
 					}
-					if (data_in.message & signal_smart && data_in.message & signal_gradient)
-					{
-						{
-							disk_size = data_in.message & 31;
-							color[0] = 1;
-							color[1] = 1;
-							color[2] = 1;
-						}
-					}
 				}
-
+				if (seed && !(steps % 2000) && final_disk_size>disk_size)
+				{
+						disk_size++;
+				}
 				if (disk_size > 0)
 				{
 					data_out.id = id;
@@ -141,13 +125,20 @@ class basic_robot : public robot
 					color[1] = 1;
 					color[2] = 1;
 				}
+				break;
 			}
 		}
 		steps++;
 	}
+	void randomize_behavior()
+	{
+		steps = 0;
+		turning_direction = 2 + rand() * 2 / RAND_MAX;
+		turning_duration = 10 + rand() * 10 / RAND_MAX;
+	}
 	void robot::init()
 	{
-		steps = timer % 600;
+		randomize_behavior();
 		comm_range = 60;
 	}
 	bool robot::comm_out_criteria(int c, double x, double y) //stardard circular transmission area

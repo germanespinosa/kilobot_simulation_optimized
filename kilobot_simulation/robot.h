@@ -21,7 +21,7 @@ public:
 	int motor_command;
 
 	//must implement an robot initialization
-	void robot_init(int, int, int);
+	void robot_init(double, double, double);
 	virtual void init() = 0;
 
 	//robots internal timer
