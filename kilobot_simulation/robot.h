@@ -8,6 +8,7 @@
 #define forward 1
 #define right 2
 #define left 3
+#define sensor_lightsource 1
 
 class robot
 {
@@ -30,6 +31,8 @@ public:
 	//must implement the controller
 	void robot_controller();
 	virtual void controller() = 0;
+
+	virtual void sensing(int, int[],int[],int[],int[]) = 0;
 
 	//flag set to 1 when robot wants to transmitt
 	int tx_request;

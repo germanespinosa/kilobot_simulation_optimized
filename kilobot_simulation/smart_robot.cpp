@@ -362,5 +362,8 @@ class smart_robot : public robot
 		}
 		return false;
 	}
+	void robot::sensing(int features, int type[], int x[], int y[], int value[])
+	{
+	}
 };
 

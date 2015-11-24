@@ -154,4 +154,8 @@ class basic_robot : public robot
 		if (gauss_rand(timer) < .90) return true;
 		return false;
 	}
+	void robot::sensing(int features, int type[], int x[], int y[], int value[])
+	{
+	}
+
 };

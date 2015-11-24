@@ -1,6 +1,8 @@
 #include "robot.h"
 class another_robot: public robot 
 {
+	int light = 0;
+
 	void robot::init()
 	{
 	}
@@ -20,6 +22,25 @@ class another_robot: public robot
 		if (c != 0) return false;
 		if (gauss_rand(timer) < .90) return true;
 		return false;
+	}
+	void robot::sensing(int features, int type[], int x[], int y[], int value[])
+	{
+		for (int i = 0; i < features;i++)
+		{
+			if (type[i] == sensor_lightsource)
+			{
+				int thislight = value[i];
+				thislight = thislight - distance(pos[0], pos[1], x[i], y[i]) / 2;
+				thislight = thislight < 20 ? 20 : thislight;
+				double t = find_theta(pos[0], pos[1], x[i], y[i]);
+				if (abs(pos[3] - t) < .3)
+				{
+					thislight = thislight*.1;
+				}
+				light = light + thislight;
+				light = light > 1023 ? 1023 : light;
+			}
+		}
 	}
 
 };

@@ -63,7 +63,7 @@ int find_collisions(int id, double x, double y)
 				else
 				{
 					int bd = 0;
-					if (abs(dist_x)>abs(dist_x))
+					if (abs(dist_x)>abs(dist_y))
 					{
 						bd = abs(dist_x);
 					}
