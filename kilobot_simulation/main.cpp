@@ -12,13 +12,13 @@ using namespace std;
 #define windowWidth 500 //display window
 #define windowHeight 500 //display window
 #define num_robots 1000 //number of robots running
-#define num_smart_robots 10 //number of robots running
+#define num_smart_robots 5 //number of robots running
 #define comm_noise_std 5 //standard dev. of sensor noise
 #define PI 3.14159265358979324
-#define radius 20 //radius of a robot
+#define radius 16 //radius of a robot
 #define p_control_execute .99 // probability of a controller executing its time step
-#define arena_width 5000
-#define arena_height 5000
+#define arena_width 3000
+#define arena_height 3000
 #define SKIPFRAMES 4
 // Global vars.
 double time_sim;  //simulation time
@@ -152,7 +152,7 @@ void drawScene(void)
 				{
 					if (robots[j]->incoming_message_flag <= channel)
 					{
-						if (!safe_distance[i][j] || channel>1 )
+						if (safe_distance[i][j]==0 || channel > 1 )
 						{ 
 							if (robots[order[i]]->comm_out_criteria(channel, robots[j]->pos[0], robots[j]->pos[1]) && robots[j]->comm_in_criteria(channel, robots[order[i]]->pos[0], robots[order[i]]->pos[1]))
 							{
@@ -236,8 +236,10 @@ void drawScene(void)
 	static int lastrun = 0;
 
 	lastrun++;
-
-	int secs = lastrun / 10;
+	// moves 1 pixel per iteration, radius is half of the body length
+	// so if it moves radius pixels is moving half of body lenght
+	// it reality they move that much in a second
+	int secs = lastrun / radius; 
 	int mins = secs / 60;
 	secs = secs % 60;
 	int hours = mins / 60;

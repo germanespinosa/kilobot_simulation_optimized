@@ -9,6 +9,10 @@
 #define right 2
 #define left 3
 #define sensor_lightsource 1
+#define radius 16
+#define X 0
+#define Y 1
+#define T 2
 
 class robot
 {
@@ -56,14 +60,14 @@ public:
 	virtual bool comm_in_criteria(int channel, double source_x, double source_y) = 0;
 	 
 	//useful  
-	static double distance(int x1, int y1, int x2, int y2)
+	static double distance(double x1, double y1, double x2, double y2)
 	{
 		double x = x1 - x2;
 		double y = y1 - y2;
 		double s = pow(x, 2) + pow(y, 2);
 		return sqrt(s);
 	}
-	static double find_theta(int x1, int y1, int x2, int y2)
+	static double find_theta(double x1, double y1, double x2, double y2)
 	{
 		if (x1 == x2) return 0;
 		double x = x2 - x1;
@@ -116,7 +120,7 @@ private:
 	{
 		static double V1, V2, S;
 		static int phase = 0;
-		double X;
+		double x;
 
 		if (phase == 0) {
 			do {
@@ -128,14 +132,14 @@ private:
 				S = V1 * V1 + V2 * V2;
 			} while (S >= 1 || S == 0);
 
-			X = V1 * sqrt(-2 * log(S) / S);
+			x = V1 * sqrt(-2 * log(S) / S);
 		}
 		else
-			X = V2 * sqrt(-2 * log(S) / S);
+			x = V2 * sqrt(-2 * log(S) / S);
 
 		phase = 1 - phase;
 
-		return X;
+		return x;
 	}
 };
 #endif

@@ -11,48 +11,26 @@
 
 
 #define min_movement 40
-#define tolerance 50
+#define tolerance 10
 #define PI 3.14159265358979324
 
-#define radius 20
-#define X 0
-#define Y 1
-#define T 2
-
-
-class FigureHorseShoe
-{
-public:
-	int disks = 23;
-	int disks_size[23] = { 10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10 };
-	int disks_center_x[23] = { 1800, 1800, 1800, 1800, 1800, 1800, 1800, 1950, 2100, 2300, 2500, 2700, 2900, 3100, 3300, 3450, 3600, 3600, 3600, 3600, 3600, 3600, 3600 };
-	int disks_center_y[23] = { 1800, 2000, 2200, 2400, 2600, 2800, 3000, 3150, 3300, 3300, 3300, 3300, 3300, 3300, 3300, 3150, 3000, 2800, 2600, 2400, 2200, 2000, 1800 };
-	int disks_status[23];
-	int disks_ids[23];
-};
 
 class FigureX
 {
 public:
-	int disks = 20;
-	int disks_size[20] = { 10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10 };
-	int disks_wait[20] = { 15,15,10,10,1,1,10,10,15,15,15,15,10,10,1,1,10,10,15,15 };
-	int disks_center_x[20] = { 1800, 2000, 2200, 2400, 2600, 2800, 3000, 3200, 3400, 3600, 1800, 2000, 2200, 2400, 2600, 2800, 3000, 3200, 3400, 3600 };
-	int disks_center_y[20] = { 1800, 2000, 2200, 2400, 2600, 2800, 3000, 3200, 3400, 3600, 3600, 3400, 3200, 3000, 2800, 2600, 2400, 2200, 2000, 1800 };
+	int disks = 38;
+	int disks_size[38] = { 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1 };
+	int disks_delay[38] = { 10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10 };
+	int disks_center_x[38] = { -9, -8, -7, -6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9,-9,-8,-7,-6,-5,-4,-3,-2,-1,0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+	int disks_center_y[38] = { -9, -8, -7, -6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 9, 8, 7, 6, 5, 4, 3, 2, 1,0,-1,-2,-3,-4,-5,-6,-7,-8,-9};
+	double figure_x = 1600;
+	double figure_y = 1600;
+	int figure_scale = 100;
+	int figure_thickness = 4;
 	int disks_status[20];
 	int disks_ids[20];
 };
 
-class FigureLine
-{
-public:
-	int disks = 23;
-	int disks_size[23] = { 10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10 };
-	int disks_center_x[23] = { 1800, 2000, 2200, 2400, 2600, 2800, 3000, 3200, 3400, 3600, 1800, 2000, 2200, 2400, 2600, 2800, 3000, 3200, 3400, 3600 };
-	int disks_center_y[23] = { 1800, 2000, 2200, 2400, 2600, 2800, 3000, 3200, 3400, 3600, 3600, 3400, 3200, 3000, 2800, 2600, 2400, 2200, 2000, 1800 };
-	int disks_status[23];
-	int disks_ids[23];
-};
 
 class smart_robot : public robot
 {
@@ -117,19 +95,39 @@ class smart_robot : public robot
 			i = 0;
 	}
 
+	int diskX(int i)
+	{
+		return f.figure_x + f.disks_center_x[i] * f.figure_scale;
+	}
+	int diskY(int i)
+	{
+		return f.figure_y + f.disks_center_y[i] * f.figure_scale;
+	}
+	int diskSize(int i)
+	{
+		return f.disks_size[i] * f.figure_thickness;
+	}
+
 	void findClosestDisk()
 	{
-		double dist = 0;
+		double disttocenter = -1;
+		double disttorobot = -1;
 		closest_disk = -1;
 		for (int i = 0;i < f.disks;i++)
 		{
 			if (f.disks_status[i]==0)
 			{
-				double newdist = distance(f.disks_center_x[i], f.disks_center_y[i], pos[X], pos[Y]);
-				if (dist > newdist || closest_disk == -1)
+
+				double newdisttocenter = distance(0,0,f.disks_center_x[i],f.disks_center_y[i]);
+				if (disttocenter >= newdisttocenter || closest_disk == -1)
 				{
-					dist = newdist;
-					closest_disk = i;
+					double newdisttorobot = distance(pos[X], pos[Y], diskX(i), diskY(i));
+					if (disttocenter > newdisttocenter || disttorobot > newdisttorobot || closest_disk == -1)
+					{
+						disttorobot = newdisttorobot;
+						disttocenter = newdisttocenter;
+						closest_disk = i;
+					}
 				};
 			};
 		}
@@ -143,7 +141,7 @@ class smart_robot : public robot
 		//let's record our position to know if we are moving
 		claimDisk(closest_disk);
 		recordPosition();
-		setDestination(f.disks_center_x[closest_disk], f.disks_center_y[closest_disk]);
+		setDestination(diskX(closest_disk), diskY(closest_disk));
 		behavior = moving; // move toward the closest disk
 	}
 
@@ -171,9 +169,9 @@ class smart_robot : public robot
 			}
 		}
 
-		int msg = f.disks_wait[closest_disk];
+		int msg = f.disks_delay[closest_disk];
 		msg = msg << 5;
-		msg = msg + f.disks_size[closest_disk];
+		msg = msg + diskSize(closest_disk);
 		data_out.id = id;
 		data_out.message = signal_smart + signal_recruit + msg;
 		tx_request = 1;
@@ -267,7 +265,7 @@ class smart_robot : public robot
 			return;
 		}
 		data_out.id = id;
-		data_out.message = signal_smart + signal_gradient + f.disks_size[closest_disk];
+		data_out.message = signal_smart + signal_gradient + diskSize(closest_disk) ;
 		tx_request = 1;
 	}
 
@@ -335,10 +333,10 @@ class smart_robot : public robot
 		{
 			case 1:
 			{
-				static double diameter = 2 * radius + 1;
+				static double diameter = 2 * radius + 5;
 				if (x < pos[0] - diameter || x > pos[0] + diameter || y < pos[1] - diameter || y > pos[1] + diameter) return false;
-				if (robot::distance(pos[0], pos[1], x, y) > diameter) return false; //robot within com range, put transmitting robots data in its data_in struct
-				return true;
+				double dist = robot::distance(pos[0], pos[1], x, y);
+				return dist <= diameter; //robot within com range, put transmitting robots data in its data_in struct
 			}
 			case 2:
 			{
@@ -353,7 +351,7 @@ class smart_robot : public robot
 		{
 			case 1:
 			{
-				if (gauss_rand(timer) < .90) return true;
+				return true;
 			}
 			case 2:
 			{
