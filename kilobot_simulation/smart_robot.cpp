@@ -347,9 +347,10 @@ class smart_robot : public robot
 		}
 		return 0;
 	}
-	bool robot::comm_in_criteria(int c, double x, double y, double d, communcation_data cd) //omnidirectional
+	bool robot::comm_in_criteria(int c, double x, double y, double d, void *cd) //omnidirectional
 	{
-		data_in = cd;
+		communcation_data *ccd = (communcation_data *)cd;
+		data_in = *ccd;
 		data_in.distance;
 		switch (c)
 		{

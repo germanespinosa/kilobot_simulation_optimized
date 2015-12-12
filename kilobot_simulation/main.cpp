@@ -127,7 +127,8 @@ void drawScene(void)
 						double range = rs->comm_out_criteria(channel, rd->pos[0], rd->pos[1], safe_distance[index][j]);
 						if (range)
 						{
-							if (rd->comm_in_criteria(channel, rs->pos[0], rs->pos[1], range, rs->data_out))
+							void *msg = rs->get_message(channel);
+							if (rd->comm_in_criteria(channel, rs->pos[0], rs->pos[1], range, msg))
 							{
 								rd->incoming_message_flag = channel;
 							}
