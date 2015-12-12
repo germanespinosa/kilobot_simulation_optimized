@@ -21,6 +21,7 @@
   <ItemGroup>
     <ClInclude Include="robot.h" />
     <ClInclude Include="touch_channel.h" />
+    <ClInclude Include="wifi_channel.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="basic_robot.cpp" />

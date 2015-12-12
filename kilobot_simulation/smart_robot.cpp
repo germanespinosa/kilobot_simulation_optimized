@@ -1,6 +1,6 @@
 #include "robot.h"
 #include "touch_channel.h"
-#include "wifi_channel.cpp"
+#include "wifi_channel.h"
 #include <iostream>
 
 #define signal_basic 65536
@@ -38,6 +38,9 @@ class smart_robot : public robot
 {
 	enum behavior_enum
 	{
+		bidding,
+		assigning,
+		receiving,
 		finding,
 		moving,
 		evading,
@@ -48,10 +51,15 @@ class smart_robot : public robot
 
 	//comms
 	//received data goes here
-	communcation_data data_in;
+	touch_data data_in;
 	//data to transmitt goes here
-	communcation_data data_out;
+	touch_data data_out;
 
+	//comms
+	//received data goes here
+	wifi_data wifi_in;
+	//data to transmitt goes here
+	wifi_data wifi_out;
 
 	FigureX f;
 
@@ -61,6 +69,9 @@ class smart_robot : public robot
 	int steps;
 	double destination[2];
 
+	int bid_leader;
+	int bid[100];
+
 	void robot::controller()
 	{
 		color[0] = 1;
@@ -69,6 +80,22 @@ class smart_robot : public robot
 		checkIncoming();
 		switch(behavior)
 		{ 
+			case bidding:
+			{
+				if (steps > 1000) //I'm alone
+				{
+					behavior = assigning;
+				}
+				if (bid_leader == 0)
+				{
+					bid_leader = rand();
+				}
+				wifi_out.id = id;
+				wifi_out.data1 = bid_leader;
+				wifi_out.data2 = wifi_action::bid; //bid for leadership
+				tx_request = 2;
+				break;
+			}
 			case finding:
 			{
 				findClosestDisk();
@@ -248,8 +275,8 @@ class smart_robot : public robot
 	void claimDisk(int diskId)
 	{
 		f.disks_status[diskId] = 1;
-		data_out.id = id;
-		data_out.message = signal_smart + signal_claim + diskId;
+		wifi_out.id = id;
+		wifi_out.data1 = signal_smart + signal_claim + diskId;
 		tx_request = 2;
 	}
 
@@ -282,13 +309,14 @@ class smart_robot : public robot
 	{
 		if (incoming_message_flag == 2)
 		{
+
 			incoming_message_flag = 0;
-			if (data_in.message && signal_claim)
+			if (wifi_in.data1 && signal_claim)
 			{
-				int diskId = data_in.message - signal_smart - signal_claim;
+				int diskId = wifi_in.data1 - signal_smart - signal_claim;
 				if (f.disks_status[diskId] == 1)
 				{
-					if (data_in.id > id)
+					if (wifi_in.id > id)
 					{
 						behavior = finding;
 						f.disks_status[diskId] = 2;
@@ -358,17 +386,19 @@ class smart_robot : public robot
 	}
 	bool robot::comm_in_criteria(int c, double x, double y, double d, void *cd) //omnidirectional
 	{
-		communcation_data *ccd = (communcation_data *)cd;
-		data_in = *ccd;
-		data_in.distance;
 		switch (c)
 		{
 			case 1:
 			{
+				touch_data *ccd = (touch_data *)cd;
+				data_in = *ccd;
+				data_in.distance=d;
 				return true;
 			}
 			case 2:
 			{
+				wifi_data *cwd = (wifi_data *)cd;
+				wifi_in = *cwd;
 				return true;
 			}
 		}
@@ -379,7 +409,10 @@ class smart_robot : public robot
 	}
 	void *robot::get_message(int c)
 	{
-		return (void *)&data_out;
+		if (c == 1)
+			return (void *)&data_out;
+		else
+			return (void *)&wifi_out;
 	}
 };
 

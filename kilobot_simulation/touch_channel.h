@@ -1,6 +1,6 @@
 #pragma once
 //communication data struct
-struct communcation_data {
+struct touch_data {
 	int action;
 	int message;
 	int id;

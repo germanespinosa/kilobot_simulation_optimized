@@ -25,9 +25,9 @@ class basic_robot : public robot
 
 	//comms
 	//received data goes here
-	communcation_data data_in;
+	touch_data data_in;
 	//data to transmitt goes here
-	communcation_data data_out;
+	touch_data data_out;
 
 
 	void robot::controller()
@@ -165,7 +165,7 @@ class basic_robot : public robot
 	bool robot::comm_in_criteria(int c, double x, double y, double d, void *cd) //omnidirectional
 	{
 		if (c != 1) return false;
-		communcation_data *ccd = (communcation_data *)cd;
+		touch_data *ccd = (touch_data *)cd;
 		data_in = *ccd;
 		data_in.distance;
 		return true;
