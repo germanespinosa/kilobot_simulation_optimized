@@ -100,7 +100,7 @@ void drawScene(void)
 		//run controller this time step with p_control_execute probability
 		if ((rand())<(int)(p_control_execute*RAND_MAX))
 		{
-			((robot*)robots[i])->robot_controller();
+			robots[i]->robot_controller();
 		}
 
 	}
@@ -111,25 +111,24 @@ void drawScene(void)
 	for (i = 0;i < num_robots;i++)
 	{
 		int index = order[seed+i];
+		robot *rs = robots[index];
 		//if robot wants to communicate, send message to all robots within distance comm_range
-		if (robots[index]->tx_request != 0)
+		if (rs->tx_request != 0)
 		{
-			int channel = robots[index]->tx_request;
-			robots[index]->tx_request = 0;//clear transmission flag
+			int channel = rs->tx_request;
+			rs->tx_request = 0;//clear transmission flag
 			for (j = 0;j < num_robots;j++)
 			{
+				robot *rd = robots[j];
 				if (j != index)
 				{
-					if (robots[j]->incoming_message_flag <= channel)
+					if (rd->incoming_message_flag <= channel)
 					{
-						if (safe_distance[index][j]==0 || channel > 1 )
-						{ 
-							if (robots[index]->comm_out_criteria(channel, robots[j]->pos[0], robots[j]->pos[1]) && robots[j]->comm_in_criteria(channel, robots[index]->pos[0], robots[index]->pos[1]))
+						if (rs->comm_out_criteria(channel, rd->pos[0], rd->pos[1], safe_distance[index][j]))
+						{
+							if (rd->comm_in_criteria(channel, rs->pos[0], rs->pos[1], rs->data_out))
 							{
-								double distance = sqrt((robots[j]->pos[0] - robots[index]->pos[0])*(robots[j]->pos[0] - robots[index]->pos[0]) + (robots[j]->pos[1] - robots[index]->pos[1])*(robots[j]->pos[1] - robots[index]->pos[1]));
-								robots[j]->incoming_message_flag = channel;
-								robots[j]->data_in = robots[index]->data_out;
-								robots[j]->data_in.distance = distance;
+								rd->incoming_message_flag = channel;
 							}
 						}
 					}

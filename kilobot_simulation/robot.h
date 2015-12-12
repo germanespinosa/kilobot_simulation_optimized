@@ -56,8 +56,8 @@ public:
 	communcation_data data_in;
 	//data to transmitt goes here
 	communcation_data data_out;
-	virtual bool comm_out_criteria(int channel, double destination_x, double destination_y) = 0;
-	virtual bool comm_in_criteria(int channel, double source_x, double source_y) = 0;
+	virtual double comm_out_criteria(int channel, double destination_x, double destination_y, int sd) = 0;
+	virtual bool comm_in_criteria(int channel, double source_x, double source_y, communcation_data cd) = 0;
 	 
 	//useful  
 	static double distance(double x1, double y1, double x2, double y2)

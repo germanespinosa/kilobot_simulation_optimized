@@ -145,17 +145,19 @@ class basic_robot : public robot
 		randomize_behavior();
 		comm_range = 60;
 	}
-	bool robot::comm_out_criteria(int c, double x, double y) //stardard circular transmission area
+	double robot::comm_out_criteria(int c, double x, double y, int sd) //stardard circular transmission area
 	{
-		if (c != 1) return false;
+		if (c != 1 || sd) return 0;
 		static double diameter = 2 * radius + 5;
-		if (x < pos[0] - diameter || x > pos[0] + diameter || y < pos[1] - diameter || y > pos[1] + diameter) return false;
+		if (x < pos[0] - diameter || x > pos[0] + diameter || y < pos[1] - diameter || y > pos[1] + diameter) return 0;
 		double dist = robot::distance(pos[0], pos[1], x, y);
-		return dist <= diameter; //robot within com range, put transmitting robots data in its data_in struct
+		if (dist <= diameter) return dist; //robot within com range, put transmitting robots data in its data_in struct
+		return 0;
 	}
-	bool robot::comm_in_criteria(int c, double x, double y) //omnidirectional
+	bool robot::comm_in_criteria(int c, double x, double y, communcation_data cd) //omnidirectional
 	{
 		if (c != 1) return false;
+		data_in = cd;
 		return true;
 	}
 	void robot::sensing(int features, int type[], int x[], int y[], int value[])

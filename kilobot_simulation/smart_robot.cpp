@@ -327,26 +327,29 @@ class smart_robot : public robot
 		prev_pos[T] = pos[T];
 	}
 
-	bool robot::comm_out_criteria(int c, double x, double y)
+	double robot::comm_out_criteria(int c, double x, double y, int sd)
 	{
 		switch (c)
 		{
 			case 1:
 			{
+				if (sd) return 0;
 				static double diameter = 2 * radius + 5;
-				if (x < pos[0] - diameter || x > pos[0] + diameter || y < pos[1] - diameter || y > pos[1] + diameter) return false;
+				if (x < pos[0] - diameter || x > pos[0] + diameter || y < pos[1] - diameter || y > pos[1] + diameter) return 0;
 				double dist = robot::distance(pos[0], pos[1], x, y);
-				return dist <= diameter; //robot within com range, put transmitting robots data in its data_in struct
+				if (dist <= diameter) return dist; //robot within com range, put transmitting robots data in its data_in struct
+				break;
 			}
 			case 2:
 			{
-				return true;
+				return -1;
 			}
 		}
-		return false;
+		return 0;
 	}
-	bool robot::comm_in_criteria(int c, double x, double y) //omnidirectional
+	bool robot::comm_in_criteria(int c, double x, double y, communcation_data cd) //omnidirectional
 	{
+		data_in = cd;
 		switch (c)
 		{
 			case 1:

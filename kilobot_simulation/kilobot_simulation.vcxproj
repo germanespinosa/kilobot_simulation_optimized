@@ -22,7 +22,6 @@
     <ClInclude Include="robot.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="kilobot.cpp" />
     <ClCompile Include="basic_robot.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="robot.cpp" />
