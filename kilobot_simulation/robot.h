@@ -1,5 +1,4 @@
 #include <iostream>
-
 #ifndef ROBOT_H
 #define ROBOT_H
 #define motion_error_std .007
@@ -44,25 +43,8 @@ public:
 	//flag set to 1 when new message received
 	int incoming_message_flag;
 
-	//communication data struct
-	struct communcation_data {
-		int message;
-		int id;
-		double distance;
-	};
 
-	//comms
-	//received data goes here
-	communcation_data data_in;
-	//data to transmitt goes here
-	communcation_data data_out;
-	
-	void *get_message(int channel)
-	{
-		return (void *) &data_out;
-	}
-
-	
+	virtual void *get_message(int channel) = 0;
 	
 	virtual double comm_out_criteria(int channel, double destination_x, double destination_y, int sd) = 0;
 	virtual bool comm_in_criteria(int channel, double source_x, double source_y, double distance, void *cd) = 0;

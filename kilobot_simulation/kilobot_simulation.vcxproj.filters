@@ -18,7 +18,7 @@
     <ClInclude Include="robot.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="channel.h">
+    <ClInclude Include="touch_channel.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -35,7 +35,10 @@
     <ClCompile Include="basic_robot.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="channel.cpp">
+    <ClCompile Include="touch_channel.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="wifi_channel.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

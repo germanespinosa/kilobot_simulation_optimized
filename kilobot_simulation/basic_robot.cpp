@@ -1,4 +1,5 @@
 #include "robot.h"
+#include "touch_channel.h"
 
 #define signal_basic 65536
 #define signal_smart 32768
@@ -21,6 +22,13 @@ class basic_robot : public robot
 	int turning_direction = 0;
 	int turning_duration = 0;
 	int wait = 0;
+
+	//comms
+	//received data goes here
+	communcation_data data_in;
+	//data to transmitt goes here
+	communcation_data data_out;
+
 
 	void robot::controller()
 	{	
@@ -165,5 +173,8 @@ class basic_robot : public robot
 	void robot::sensing(int features, int type[], int x[], int y[], int value[])
 	{
 	}
-
+	void *robot::get_message(int c)
+	{
+		return (void *)&data_out;
+	}
 };

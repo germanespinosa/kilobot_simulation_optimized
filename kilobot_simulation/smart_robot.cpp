@@ -1,4 +1,6 @@
 #include "robot.h"
+#include "touch_channel.h"
+#include "wifi_channel.cpp"
 #include <iostream>
 
 #define signal_basic 65536
@@ -43,6 +45,13 @@ class smart_robot : public robot
 		registering,
 		finish
 	};
+
+	//comms
+	//received data goes here
+	communcation_data data_in;
+	//data to transmitt goes here
+	communcation_data data_out;
+
 
 	FigureX f;
 
@@ -367,6 +376,10 @@ class smart_robot : public robot
 	}
 	void robot::sensing(int features, int type[], int x[], int y[], int value[])
 	{
+	}
+	void *robot::get_message(int c)
+	{
+		return (void *)&data_out;
 	}
 };
 

@@ -19,15 +19,16 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="channel.h" />
     <ClInclude Include="robot.h" />
+    <ClInclude Include="touch_channel.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="basic_robot.cpp" />
-    <ClCompile Include="channel.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="robot.cpp" />
     <ClCompile Include="smart_robot.cpp" />
+    <ClCompile Include="touch_channel.cpp" />
+    <ClCompile Include="wifi_channel.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{925D1517-7736-40E7-A03E-8A5B4BC13DFC}</ProjectGuid>
