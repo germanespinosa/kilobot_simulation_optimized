@@ -11,7 +11,7 @@ using namespace std;
 #define delay 0 //delay between time steps, use if program is too fast
 #define windowWidth 500 //display window
 #define windowHeight 500 //display window
-#define num_robots 1000 //number of robots running
+#define num_robots 500 //number of robots running
 #define num_smart_robots 5 //number of robots running
 #define comm_noise_std 5 //standard dev. of sensor noise
 #define PI 3.14159265358979324
@@ -152,7 +152,7 @@ void drawScene(void)
 				{
 					if (robots[j]->incoming_message_flag <= channel)
 					{
-						if (safe_distance[i][j]==0 || channel > 1 )
+						if (safe_distance[order[i]][j]==0 || channel > 1 )
 						{ 
 							if (robots[order[i]]->comm_out_criteria(channel, robots[j]->pos[0], robots[j]->pos[1]) && robots[j]->comm_in_criteria(channel, robots[order[i]]->pos[0], robots[order[i]]->pos[1]))
 							{

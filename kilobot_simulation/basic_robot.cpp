@@ -125,13 +125,13 @@ class basic_robot : public robot
 				break;
 			}
 		}
-		if (changecolor)
-		{
-			color[0] = 1;
-			color[1] = 0;
-			color[2] = 0;
-			changecolor--;
-		}
+		//if (changecolor)
+		//{
+		//	color[0] = 1;
+		//	color[1] = 0;
+		//	color[2] = 0;
+		//	changecolor--;
+		//}
 		steps++;
 	}
 	void randomize_behavior()
