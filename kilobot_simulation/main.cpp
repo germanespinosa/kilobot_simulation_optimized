@@ -115,22 +115,22 @@ void drawScene(void)
 		//if robot wants to communicate, send message to all robots within distance comm_range
 		if (rs->tx_request != 0)
 		{
-			int channel = rs->tx_request;
+			int ch = rs->tx_request;
 			rs->tx_request = 0;//clear transmission flag
 			for (j = 0;j < num_robots;j++)
 			{
 				robot *rd = robots[j];
 				if (j != index)
 				{
-					if (rd->incoming_message_flag <= channel)
+					if (rd->incoming_message_flag <= ch)
 					{
-						double range = rs->comm_out_criteria(channel, rd->pos[0], rd->pos[1], safe_distance[index][j]);
+						double range = rs->comm_out_criteria(ch, rd->pos[0], rd->pos[1], safe_distance[index][j]);
 						if (range)
 						{
-							void *msg = rs->get_message(channel);
-							if (rd->comm_in_criteria(channel, rs->pos[0], rs->pos[1], range, msg))
+							void *msg = rs->get_message(ch);
+							if (rd->comm_in_criteria(ch, rs->pos[0], rs->pos[1], range, msg))
 							{
-								rd->incoming_message_flag = channel;
+								rd->incoming_message_flag = ch;
 							}
 						}
 					}
