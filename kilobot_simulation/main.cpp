@@ -20,13 +20,14 @@ using namespace std;
 #define arena_width 3000
 #define arena_height 3000
 #define SKIPFRAMES 4
+#define shuffles 20
 // Global vars.
 double time_sim;  //simulation time
 float zoom, view_x, view_y; //var. for zoom and scroll
 
-
 robot** robots = new robot*[num_robots];//creates an array of robots
 int safe_distance[num_robots][num_robots];
+int order[shuffles * num_robots];
 
 //check to see if motion causes robots to collide
 int find_collisions(int id, double x, double y)
@@ -93,8 +94,7 @@ void drawScene(void)
 
 	float forward_motion_step = 1;//motion step size
 	double rotation_step = .05;//motion step size
-
-							   //run a step of most or all robot controllers
+    //run a step of most or all robot controllers
 	for (i = 0;i < num_robots;i++)
 	{
 		//run controller this time step with p_control_execute probability
@@ -105,60 +105,30 @@ void drawScene(void)
 
 	}
 
-	//choose random order to have robots communicate and bump
-	int selected[num_robots];
-	int order[num_robots];
-	for (int i = 0;i < num_robots;i++)
-	{
-		selected[i] = 0;
-		order[i] = 0;
-	}
-
-	//randomly choose the order of robots by putting their index into the order array
-
-	for (j = 0;j < num_robots;j++)
-	{
-		int index_search = rand() % num_robots;
-		int index_found = 0;
-		while (index_found == 0)
-		{
-			if (selected[index_search] == 0)
-			{
-				selected[index_search] = 1;
-				index_found = 1;
-
-			}
-			index_search++;
-			if (index_search == num_robots)
-			{
-				index_search = 0;
-			}
-
-		}
-		order[j] = index_search;
-	}
-
+	int seed;
+	seed = (rand() % shuffles) * num_robots;
 	//let robots communicate
 	for (i = 0;i < num_robots;i++)
 	{
+		int index = order[seed+i];
 		//if robot wants to communicate, send message to all robots within distance comm_range
-		if (robots[order[i]]->tx_request != 0)
+		if (robots[index]->tx_request != 0)
 		{
-			int channel = robots[order[i]]->tx_request;
-			robots[order[i]]->tx_request = 0;//clear transmission flag
+			int channel = robots[index]->tx_request;
+			robots[index]->tx_request = 0;//clear transmission flag
 			for (j = 0;j < num_robots;j++)
 			{
-				if (j != order[i])
+				if (j != index)
 				{
 					if (robots[j]->incoming_message_flag <= channel)
 					{
-						if (safe_distance[order[i]][j]==0 || channel > 1 )
+						if (safe_distance[index][j]==0 || channel > 1 )
 						{ 
-							if (robots[order[i]]->comm_out_criteria(channel, robots[j]->pos[0], robots[j]->pos[1]) && robots[j]->comm_in_criteria(channel, robots[order[i]]->pos[0], robots[order[i]]->pos[1]))
+							if (robots[index]->comm_out_criteria(channel, robots[j]->pos[0], robots[j]->pos[1]) && robots[j]->comm_in_criteria(channel, robots[index]->pos[0], robots[index]->pos[1]))
 							{
-								double distance = sqrt((robots[j]->pos[0] - robots[order[i]]->pos[0])*(robots[j]->pos[0] - robots[order[i]]->pos[0]) + (robots[j]->pos[1] - robots[order[i]]->pos[1])*(robots[j]->pos[1] - robots[order[i]]->pos[1]));
+								double distance = sqrt((robots[j]->pos[0] - robots[index]->pos[0])*(robots[j]->pos[0] - robots[index]->pos[0]) + (robots[j]->pos[1] - robots[index]->pos[1])*(robots[j]->pos[1] - robots[index]->pos[1]));
 								robots[j]->incoming_message_flag = channel;
-								robots[j]->data_in = robots[order[i]]->data_out;
+								robots[j]->data_in = robots[index]->data_out;
 								robots[j]->data_in.distance = distance;
 							}
 						}
@@ -168,64 +138,52 @@ void drawScene(void)
 		}
 	}
 
+	seed = (rand() % shuffles) * num_robots;
 	//move robots
 	for (i = 0;i < num_robots;i++)
 	{
-		if (robots[order[i]]->motor_command == 1)//move forward
-		{
-			if (find_collisions(order[i], robots[order[i]]->pos[0] + forward_motion_step*cos(robots[order[i]]->pos[2]), robots[order[i]]->pos[1] + forward_motion_step*sin(robots[order[i]]->pos[2])) == 0)
-			{
+		int index = order[seed + i];
+		robot *r = robots[index];
 
-				robots[order[i]]->pos[0] += forward_motion_step*cos(robots[order[i]]->pos[2]) ;
-				robots[order[i]]->pos[1] += forward_motion_step*sin(robots[order[i]]->pos[2]) ;
-				robots[order[i]]->pos[2] += robots[order[i]]->motor_error;
-			}
-
-		}
-		else if (robots[order[i]]->motor_command == 2)//turn cw
+		double t = r->pos[2];
+		double s = 0;
+		switch (r->motor_command)
 		{
-			double temp_theta = rotation_step + robots[order[i]]->pos[2];
-			double temp_x = forward_motion_step*cos(temp_theta) + robots[order[i]]->pos[0];
-			double temp_y = forward_motion_step*sin(temp_theta) + robots[order[i]]->pos[1];
-			if (find_collisions(order[i], temp_x, temp_y) == 0)
+			case 1:
+				{ 
+					t += r->motor_error;
+					s = forward_motion_step;
+					break;
+				}
+			case 2:
 			{
-				robots[order[i]]->pos[2] = temp_theta;
-				robots[order[i]]->pos[0] = temp_x;
-				robots[order[i]]->pos[1] = temp_y;
+				t += rotation_step;
+				s = forward_motion_step;
+				if (r->pos[2] > 2 * PI)
+				{
+					r->pos[2] -= 2 * PI;
+				}
+				break;
 			}
-			else
+			case 3:
 			{
-				robots[order[i]]->pos[2] = temp_theta;
+				t -= rotation_step;
+				s = forward_motion_step;
+				if (r->pos[2] < 0)
+				{
+					r->pos[2] += 2 * PI;
+				}
+				break;
 			}
 		}
-		else if (robots[order[i]]->motor_command == 3)//turn ccw
+		double temp_x = s*cos(t) + r->pos[0];
+		double temp_y = s*sin(t) + r->pos[1];
+		if (find_collisions(index, temp_x, temp_y) == 0)
 		{
-
-			double temp_theta = robots[order[i]]->pos[2] - rotation_step;
-			double temp_x = forward_motion_step*cos(temp_theta) + robots[order[i]]->pos[0];
-			double temp_y = forward_motion_step*sin(temp_theta) + robots[order[i]]->pos[1];
-			if (find_collisions(order[i], temp_x, temp_y) == 0)
-			{
-				robots[order[i]]->pos[2] = temp_theta;
-				robots[order[i]]->pos[0] = temp_x;
-				robots[order[i]]->pos[1] = temp_y;
-			}
-			else
-			{
-				robots[order[i]]->pos[2] = temp_theta;
-			}
+			r->pos[0] = temp_x;
+			r->pos[1] = temp_y;
 		}
-		else //stop motors
-		{
-		}
-		if (robots[order[i]]->pos[2] < 0)
-		{
-			robots[order[i]]->pos[2] += 2 * PI;
-		}
-		if (robots[order[i]]->pos[2] > 2 * PI)
-		{
-			robots[order[i]]->pos[2] -= 2 * PI;
-		}
+		r->pos[2] = t;
 	}
 
 	//draws the arena
@@ -286,6 +244,21 @@ void drawScene(void)
 // Initialization routine.
 void setup(void)
 {
+	for (int i = 0;i < num_robots;i++)
+		for (int j = 0;j < shuffles;j++)
+			order[i+num_robots*j] = i;
+
+	for (int i = 0;i < num_robots-1;i++)
+		for (int j = 0;j < shuffles;j++)
+		{
+			int index = j*num_robots + i;
+			int r = index + rand() % (num_robots - i);
+			int p = order[index];
+			order[index] = order[r];
+			order[r] = p;
+		}
+
+
 	for (int i = 0;i < num_robots;i++)
 		for (int j = 0;j < num_robots;j++)
 			safe_distance[i][j] = 0;
