@@ -18,7 +18,7 @@ class basic_robot : public robot
 	int disk_size = 0;
 	int steps = 0;
 	int final_disk_size = 0;
-	bool seed=false;
+	bool seed = false;
 	int turning_direction = 0;
 	int turning_duration = 0;
 	int wait = 0;
@@ -31,7 +31,7 @@ class basic_robot : public robot
 
 
 	void robot::controller()
-	{	
+	{
 		if (incoming_message_flag == 1)
 		{
 			changecolor = 5;
@@ -39,99 +39,100 @@ class basic_robot : public robot
 		switch (behavior)
 		{
 		case 1://wandering
+		{
+			if (incoming_message_flag == 1) //i found a brother
 			{
-				if (incoming_message_flag == 1) //i found a brother
+				incoming_message_flag = 0;
+				// let's see if he wants to recruit me
+				if (data_in.message & signal_smart && data_in.message & signal_recruit)
 				{
-					incoming_message_flag = 0;
-					// let's see if he wants to recruit me
-					if (data_in.message & signal_smart && data_in.message & signal_recruit)
-					{
-						//i'll be a seed! how exiting!
-						motor_command = 4;
-						seed = true;
-						final_disk_size = data_in.message & mask_size;
-						wait = (data_in.message & mask_delay) >> 5;
-						disk_size = 0;
-						behavior = 2;
-						steps = 0;
-						break;
-					}
-					if (data_in.message & signal_basic && data_in.message & signal_recruit && data_in.message & signal_gradient)
-					{
-						motor_command = 4;
-						disk_size = (data_in.message & 31)-1;
-						behavior = 3;
-						break;
-					}
+					//i'll be a seed! how exiting!
+					motor_command = 4;
+					seed = true;
+					final_disk_size = data_in.message & mask_size;
+					wait = (data_in.message & mask_delay) >> 5;
+					disk_size = 0;
+					behavior = 2;
+					steps = 0;
+					break;
 				}
-				if (steps < turning_duration)
+				if (data_in.message & signal_basic && data_in.message & signal_recruit && data_in.message & signal_gradient)
 				{
-					motor_command = turning_direction;
-				}
-				else if (steps < 11 * turning_duration)
-				{
-					motor_command = 1;
-				}
-				else 
-				{
-					randomize_behavior();
-				}
-				color[0] = 0;
-				color[1] = 1;
-				color[2] = 0;
-				break;
-			}	
-		case 2:
-			{
-				if (steps >= (1000 * wait)+10)
-				{
+					motor_command = 4;
+					disk_size = (data_in.message & 31) - 1;
 					behavior = 3;
+					break;
 				}
+			}
+			if (steps < turning_duration)
+			{
+				motor_command = turning_direction;
+			}
+			else if (steps < 11 * turning_duration)
+			{
+				motor_command = 1;
+			}
+			else
+			{
+				randomize_behavior();
+			}
+			color[0] = 0;
+			color[1] = 1;
+			color[2] = 0;
+			break;
+		}
+		case 2:
+		{
+			if (steps >= (1000 * wait) + 10)
+			{
+				behavior = 3;
+			}
+			data_out.id = id;
+			data_out.message = signal_basic + signal_gradient;
+			color[0] = 1;
+			color[1] = 0;
+			color[2] = 1;
+			tx_request = 1;
+			break;
+		}
+		case 3:
+		{
+			motor_command = 4;
+			if (incoming_message_flag)
+			{
+				incoming_message_flag = 0;
+				if (!seed && data_in.message & signal_basic && data_in.message & signal_recruit && data_in.message & signal_gradient)
+				{
+					if (disk_size < (data_in.message & 31) - 1)
+					{
+						disk_size = (data_in.message & 31) - 1;
+						behavior = 3;
+						color[0] = 1;
+						color[1] = 0;
+						color[2] = 1;
+					}
+				}
+			}
+			if (seed && !(steps % 2000) && final_disk_size>disk_size)
+			{
+				disk_size++;
+			}
+			if (disk_size > 0)
+			{
 				data_out.id = id;
-				data_out.message = signal_basic + signal_gradient;
+				data_out.message = signal_basic + signal_recruit + signal_gradient + disk_size;
 				color[0] = 1;
-				color[1] = 0;
+				color[1] = 1;
 				color[2] = 1;
 				tx_request = 1;
-				break;
 			}
-		case 3:
-			{
-				motor_command = 4;
-				if (incoming_message_flag)
-				{
-					incoming_message_flag = 0;
-					if (!seed && data_in.message & signal_basic && data_in.message & signal_recruit && data_in.message & signal_gradient)
-					{
-						if (disk_size < (data_in.message & 31)-1)
-						{
-							disk_size = (data_in.message & 31)-1;
-							behavior = 3;
-							color[0] = 1;
-							color[1] = 0;
-							color[2] = 1;
-						}
-					}
-				}
-				if (seed && !(steps % 2000) && final_disk_size>disk_size)
-				{
-						disk_size++;
-				}
-				if (disk_size > 0)
-				{
-					data_out.id = id;
-					data_out.message = signal_basic + signal_recruit + signal_gradient + disk_size;
-					color[0] = 1;
-					color[1] = 1;
-					color[2] = 1;
-					tx_request = 1;
-				}else{
-					color[0] = 0;
-					color[1] = 1;
-					color[2] = 1;
-				}
-				break;
+			else {
+				color[0] = 0;
+				color[1] = 1;
+				color[2] = 1;
 			}
+			break;
+		}
 		}
 		//if (changecolor)
 		//{
@@ -150,6 +151,8 @@ class basic_robot : public robot
 	}
 	void robot::init()
 	{
+		dest[0] = -1;
+		dest[1] = -1;
 		randomize_behavior();
 		comm_range = 60;
 	}

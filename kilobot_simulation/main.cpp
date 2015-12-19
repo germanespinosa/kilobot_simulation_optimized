@@ -8,7 +8,9 @@
 #include "basic_robot.cpp"
 using namespace std;
 
-#define delay 0 //delay between time steps, use if program is too fast
+
+#define channels 2 
+//#define delay 10 //delay between time steps, use if program is too fast
 #define windowWidth 500 //display window
 #define windowHeight 500 //display window
 #define num_robots 1000 //number of robots running
@@ -17,9 +19,9 @@ using namespace std;
 #define PI 3.14159265358979324
 #define radius 16 //radius of a robot
 #define p_control_execute .99 // probability of a controller executing its time step
-#define arena_width 3000
-#define arena_height 3000
-#define SKIPFRAMES 4
+#define arena_width 2400
+#define arena_height 2400
+#define SKIPFRAMES 0
 #define shuffles 20
 // Global vars.
 double time_sim;  //simulation time
@@ -29,12 +31,14 @@ robot** robots = new robot*[num_robots];//creates an array of robots
 int safe_distance[num_robots][num_robots];
 int order[shuffles * num_robots];
 
+int delay = 0;
+
 //check to see if motion causes robots to collide
 int find_collisions(int id, double x, double y)
 {
 	double two_r = 2 * radius;
 	int i;
-	if (x <= radius || x >= arena_width-radius || y <= radius || y >= arena_height-radius) return 1;
+	if (x <= radius || x >= arena_width - radius || y <= radius || y >= arena_height - radius) return 1;
 	double x_ulim = x + two_r;
 	double x_llim = x - two_r;
 	double y_ulim = y + two_r;
@@ -88,13 +92,12 @@ int find_collisions(int id, double x, double y)
 // Drawing routine.
 void drawScene(void)
 {
-
-
+	GLfloat twicePi = 2.0f * PI;
 	int i, j;
 
 	float forward_motion_step = 1;//motion step size
 	double rotation_step = .05;//motion step size
-    //run a step of most or all robot controllers
+							   //run a step of most or all robot controllers
 	for (i = 0;i < num_robots;i++)
 	{
 		//run controller this time step with p_control_execute probability
@@ -110,19 +113,20 @@ void drawScene(void)
 	//let robots communicate
 	for (i = 0;i < num_robots;i++)
 	{
-		int index = order[seed+i];
+		int index = order[seed + i];
 		robot *rs = robots[index];
 		//if robot wants to communicate, send message to all robots within distance comm_range
-		if (rs->tx_request != 0)
+		int c = 1;
+		while (rs->tx_request)
 		{
-			int ch = rs->tx_request;
-			rs->tx_request = 0;//clear transmission flag
-			for (j = 0;j < num_robots;j++)
+			if (rs->tx_request & c)
 			{
-				robot *rd = robots[j];
-				if (j != index)
+				int ch = c;
+				rs->tx_request -= c;//clear transmission flag
+				for (j = 0;j < num_robots;j++)
 				{
-					if (rd->incoming_message_flag <= ch)
+					robot *rd = robots[j];
+					if (j != index)
 					{
 						double range = rs->comm_out_criteria(ch, rd->pos[0], rd->pos[1], safe_distance[index][j]);
 						if (range)
@@ -130,12 +134,13 @@ void drawScene(void)
 							void *msg = rs->get_message(ch);
 							if (rd->comm_in_criteria(ch, rs->pos[0], rs->pos[1], range, msg))
 							{
-								rd->incoming_message_flag = ch;
+								rd->incoming_message_flag += ch;
 							}
 						}
 					}
 				}
 			}
+			c = c * 2;
 		}
 	}
 
@@ -150,32 +155,32 @@ void drawScene(void)
 		double s = 0;
 		switch (r->motor_command)
 		{
-			case 1:
-				{ 
-					t += r->motor_error;
-					s = forward_motion_step;
-					break;
-				}
-			case 2:
+		case 1:
+		{
+			t += r->motor_error;
+			s = forward_motion_step;
+			break;
+		}
+		case 2:
+		{
+			t += rotation_step;
+			s = forward_motion_step;
+			if (r->pos[2] > twicePi)
 			{
-				t += rotation_step;
-				s = forward_motion_step;
-				if (r->pos[2] > 2 * PI)
-				{
-					r->pos[2] -= 2 * PI;
-				}
-				break;
+				r->pos[2] -= twicePi;
 			}
-			case 3:
+			break;
+		}
+		case 3:
+		{
+			t -= rotation_step;
+			s = forward_motion_step;
+			if (r->pos[2] < 0)
 			{
-				t -= rotation_step;
-				s = forward_motion_step;
-				if (r->pos[2] < 0)
-				{
-					r->pos[2] += 2 * PI;
-				}
-				break;
+				r->pos[2] += twicePi;
 			}
+			break;
+		}
 		}
 		double temp_x = s*cos(t) + r->pos[0];
 		double temp_y = s*sin(t) + r->pos[1];
@@ -198,19 +203,18 @@ void drawScene(void)
 	// moves 1 pixel per iteration, radius is half of the body length
 	// so if it moves radius pixels is moving half of body lenght
 	// it reality they move that much in a second
-	int secs = lastrun / radius; 
+	int secs = lastrun / radius;
 	int mins = secs / 60;
 	secs = secs % 60;
 	int hours = mins / 60;
 	mins = mins % 60;
 	char rt[100];
-	sprintf_s(rt,"simulated running time %02d:%02d:%02d", hours, mins, secs);
+	sprintf_s(rt, "simulated running time %02d:%02d:%02d", hours, mins, secs);
 	glutSetWindowTitle(rt);
 
-	if (!(lastrun % (SKIPFRAMES+1)) && lastrun>100)
+	if (!(lastrun % (SKIPFRAMES + 1)) && lastrun>100)
 	{
 		int triangleAmount = 260 / zoom * 50 + 20; //level of detail is determined by the zoom
-		GLfloat twicePi = 2.0f * PI;
 		glEnable(GL_LINE_SMOOTH);
 		glLineWidth(1.0);
 		glBegin(GL_LINES);
@@ -232,12 +236,19 @@ void drawScene(void)
 			glColor4f(0, 0, 0, 1.0);
 			glVertex2f(robots[j]->pos[0], robots[j]->pos[1]);
 			glVertex2f(robots[j]->pos[0] + cos(robots[j]->pos[2])*radius, robots[j]->pos[1] + sin(robots[j]->pos[2])*radius);
+			if (robots[j]->dest[0] != -1)
+			{
+				glBegin(GL_LINES);
+				glColor4f(1, 1, 1, 1.0);
+				glVertex2f(robots[j]->pos[0], robots[j]->pos[1]);
+				glVertex2f(robots[j]->dest[0], robots[j]->dest[1]);
+			}
 		}
 		glEnd();
 		glFlush();
 		glutSwapBuffers();
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	}	
+	}
 	cout << time_sim << endl;
 	time_sim++;
 }
@@ -247,9 +258,9 @@ void setup(void)
 {
 	for (int i = 0;i < num_robots;i++)
 		for (int j = 0;j < shuffles;j++)
-			order[i+num_robots*j] = i;
+			order[i + num_robots*j] = i;
 
-	for (int i = 0;i < num_robots-1;i++)
+	for (int i = 0;i < num_robots - 1;i++)
 		for (int j = 0;j < shuffles;j++)
 		{
 			int index = j*num_robots + i;
@@ -258,11 +269,10 @@ void setup(void)
 			order[index] = order[r];
 			order[r] = p;
 		}
-
-
 	for (int i = 0;i < num_robots;i++)
 		for (int j = 0;j < num_robots;j++)
 			safe_distance[i][j] = 0;
+
 
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
@@ -306,7 +316,13 @@ void keyInput(unsigned char key, int x, int y)
 		break;
 	case '+':
 		zoom = zoom*0.9;
-
+		break;
+	case '1':
+		if (delay>0)
+			delay--;
+		break;
+	case '2':
+		delay++;
 		break;
 	default:
 		break;
@@ -330,7 +346,7 @@ void setup_positions()
 	int rows = (int)(num_robots / columns);
 	if (num_robots % columns) rows++;
 	int horizontal_separation = arena_width / (columns + 1);
-    int vertical_separation = (int) arena_height / (rows+1);
+	int vertical_separation = (int)arena_height / (rows + 1);
 	bool smart[num_robots];
 	for (int i = 0;i < num_robots;i++)
 		smart[i] = false;
@@ -347,15 +363,16 @@ void setup_positions()
 	{
 		int c = i % columns + 1;
 		int r = i / columns + 1;
-		int hr = rand() % (horizontal_separation/2) + horizontal_separation / 4;
-		int x = c * horizontal_separation  + hr ;
-		int vr = rand() % (vertical_separation/2) + vertical_separation / 4;
+		int hr = rand() % (horizontal_separation / 2) + horizontal_separation / 4;
+		int x = c * horizontal_separation + hr;
+		int vr = rand() % (vertical_separation / 2) + vertical_separation / 4;
 		int y = r * vertical_separation + vr;
 		if (smart[i])
 		{
 			robots[k] = new smart_robot();
-		}else
-		{	
+		}
+		else
+		{
 			robots[k] = new basic_robot();
 		}
 		double t = rand() * 2 * PI / RAND_MAX;

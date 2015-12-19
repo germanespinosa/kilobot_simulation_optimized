@@ -21,8 +21,10 @@ public:
 	double motor_error;//value of how motors differ from ideal, dont use these, thats cheating!!
 	double comm_range = 60; //communication range between robots
 	double color[3]; //robot color output, values 0-1
-	//robot commanded motion 1=forward, 2=cw rotation, 3=ccw rotation, 4=stop
+					 //robot commanded motion 1=forward, 2=cw rotation, 3=ccw rotation, 4=stop
 	int motor_command;
+
+	int dest[3];
 
 	//must implement an robot initialization
 	void robot_init(double, double, double);
@@ -35,20 +37,19 @@ public:
 	void robot_controller();
 	virtual void controller() = 0;
 
-	virtual void sensing(int, int[],int[],int[],int[]) = 0;
+	virtual void sensing(int, int[], int[], int[], int[]) = 0;
 
 	//flag set to 1 when robot wants to transmitt
 	int tx_request;
-		
+
 	//flag set to 1 when new message received
 	int incoming_message_flag;
 
-
 	virtual void *get_message(int channel) = 0;
-	
+
 	virtual double comm_out_criteria(int channel, double destination_x, double destination_y, int sd) = 0;
 	virtual bool comm_in_criteria(int channel, double source_x, double source_y, double distance, void *cd) = 0;
-	 
+
 	//useful  
 	static double distance(double x1, double y1, double x2, double y2)
 	{
@@ -79,7 +80,7 @@ public:
 	}
 	static double gauss_rand(int timer)
 	{
-		static double pseudogaus_rand[GAUSS+1];
+		static double pseudogaus_rand[GAUSS + 1];
 		if (pseudogaus_rand[GAUSS] == 1)
 		{
 			return pseudogaus_rand[timer % GAUSS];
