@@ -3,6 +3,8 @@
 #include "wifi_channel.h"
 #include <iostream>
 
+#define time_out 100
+
 #define signal_basic 65536
 #define signal_smart 32768
 #define signal_gradient 16384
@@ -21,11 +23,11 @@ class FigureX
 {
 public:
 	int disks = 37;
-	int disks_priority[37] = { 1,  1,  1,  1,  1,  1,  1,  1, 0,  0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1,1,1,1,1,1,1,1 };
-	int disks_size[37] = { 1,  1,  1,  1,  1,  1,  1,  1, 1,  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,1,1,1,1,1,1,1 };
-	int disks_delay[37] = { 10, 10, 10, 10, 10, 10, 10, 10,10,  1,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10 };
-	int disks_center_x[37] = { -9, -8, -7, -6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9,-9,-8,-7,-6,-5,-4,-3,-2,-1, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
-	int disks_center_y[37] = { -9, -8, -7, -6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 9, 8, 7, 6, 5, 4, 3, 2, 1,-1,-2,-3,-4,-5,-6,-7,-8,-9 };
+	int disks_priority[37]  = { 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1 };
+	int disks_size[37] =      { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 };
+	int disks_delay[37] =    { 10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10 };
+	int disks_center_x[37] = { -9,-8,-7,-6,-5,-4,-3,-2,-1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9,-9,-8,-7,-6,-5,-4,-3,-2,-1, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+	int disks_center_y[37] = { -9,-8,-7,-6,-5,-4,-3,-2,-1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 9, 8, 7, 6, 5, 4, 3, 2, 1,-1,-2,-3,-4,-5,-6,-7,-8,-9 };
 	int disks_status[37];
 	int disks_ids[37];
 	double figure_x = 1200;
@@ -92,7 +94,7 @@ class smart_robot : public robot
 				s_robots = 0;
 				bid_leader = rand();
 			}
-			if (steps > 400) //I'm the winner
+			if (steps > time_out) //I'm the winner
 			{
 				bid_leader = 0;
 				behavior = behavior_enum::assigning;
@@ -110,7 +112,7 @@ class smart_robot : public robot
 		{
 			bid_leader = 0;
 			s_robots = 0;
-			if (steps > 1000) //looks like nobody is assigning
+			if (steps > 2 * time_out) //looks like nobody is assigning
 			{
 				steps = 0;
 				behavior = behavior_enum::bidding;
@@ -218,7 +220,7 @@ class smart_robot : public robot
 
 	void send_assigned()
 	{
-		if (s_robots > 0)
+		if (s_robots > 0 && behavior==behavior_enum::moving)
 		{
 			int selR = steps  % s_robots;
 			wifi_out.action = wifi_action::assign;
@@ -281,7 +283,7 @@ class smart_robot : public robot
 				if (f.disks_status[i] == 0 && (priority >= f.disks_priority[i] || selD == -1))
 				{
 					double newdist = distance(s_rob_pos[selR][0], s_rob_pos[selR][1], diskX(i), diskY(i));
-					if (newdist < dist || selD == -1)
+					if (newdist < dist || selD == -1 || priority > f.disks_priority[i])
 					{
 						int prev = -1;
 						for (int j = 0; j < s_robots;j++)
