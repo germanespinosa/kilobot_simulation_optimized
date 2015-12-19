@@ -5,6 +5,8 @@
 
 #define time_out 100
 
+
+#define forced_reshuffle 1000
 #define signal_basic 65536
 #define signal_smart 32768
 #define signal_gradient 16384
@@ -80,9 +82,16 @@ class smart_robot : public robot
 	double s_rob_pos[100][2];
 	int s_rob_disk[100];
 
+	int next_forced_reshuffle = 0;
+
 	void robot::controller()
 	{
 		motor_command = 4;
+		if (next_forced_reshuffle && timer > next_forced_reshuffle)
+		{
+			behavior = behavior_enum::bidding;
+			next_forced_reshuffle = 0;
+		}
 		if (incoming_message_flag & wifi) checkIncoming();
 		switch (behavior)
 		{
@@ -328,6 +337,7 @@ class smart_robot : public robot
 
 	void setDestination(double x, double y)
 	{
+		next_forced_reshuffle = timer + forced_reshuffle;
 		dest[X] = x;
 		dest[Y] = y;
 		destination[X] = dest[X];
@@ -369,6 +379,8 @@ class smart_robot : public robot
 			//hurray we are there!
 			if (closest_disk >= 0)
 			{
+				dest[0] = -1;
+				dest[1] = -1;
 				behavior = recruiting; //recruiting
 			}
 			else
