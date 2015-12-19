@@ -32,6 +32,11 @@ public:
 	int disks_center_y[37] = { -9,-8,-7,-6,-5,-4,-3,-2,-1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 9, 8, 7, 6, 5, 4, 3, 2, 1,-1,-2,-3,-4,-5,-6,-7,-8,-9 };
 	int disks_status[37];
 	int disks_ids[37];
+
+	int bases = 4;
+	int bases_x[4] = { -11,11,  0, 0};
+	int bases_y[4] = {   0, 0,-11,11};
+
 	double figure_x = 1200;
 	double figure_y = 1200;
 	int figure_scale = 100;
@@ -321,9 +326,11 @@ class smart_robot : public robot
 			}
 			if (selD == -1)
 			{
-				break;
+				s_rob_disk[selR] = -2; //no disk for this guy
 			}
-			s_rob_disk[selR] = selD;
+			else {
+				s_rob_disk[selR] = selD;
+			}
 			assigned = 0;
 			for (int i = 0;i < s_robots;i++)
 				if (s_rob_disk[i] != -1) assigned++;
@@ -331,8 +338,13 @@ class smart_robot : public robot
 		recordPosition();
 		s_robots--;
 		closest_disk = s_rob_disk[s_robots];
-		setDestination(diskX(closest_disk), diskY(closest_disk));
-		behavior = moving; // move toward the closest disk
+		if (closest_disk >= 0)
+		{
+			setDestination(diskX(closest_disk), diskY(closest_disk));
+		}else
+		{
+			gotobase();
+		}
 	}
 
 	void setDestination(double x, double y)
@@ -481,7 +493,14 @@ class smart_robot : public robot
 			if (behavior = behavior_enum::receiving)
 			{
 				closest_disk = wifi_in.int_data1;
-				setDestination(diskX(closest_disk), diskY(closest_disk));
+				if (closest_disk >= 0)
+				{
+					setDestination(diskX(closest_disk), diskY(closest_disk));
+				}
+				else //let's go to the cclosest base
+				{
+					gotobase();
+				}
 			}
 			break;
 		}
@@ -491,6 +510,19 @@ class smart_robot : public robot
 			break;
 		}
 		}
+	}
+
+	void gotobase()
+	{
+		int closest_base = 0;
+		for (int i = 1;i < f.bases;i++)
+		{
+			if (distance(pos[0], pos[1], f.figure_x + f.figure_scale *f.bases_x[closest_base], f.figure_y + f.figure_scale *f.bases_y[closest_base]) > distance(pos[0], pos[1], f.figure_x + f.figure_scale *f.bases_x[i], f.figure_y + f.figure_scale *f.bases_y[i]))
+			{
+				closest_base = i;
+			}
+		}
+		setDestination(f.figure_x + f.figure_scale *f.bases_x[closest_base], f.figure_y + f.figure_scale *f.bases_y[closest_base]);
 	}
 
 	void evadeObstacle(bool reset)
