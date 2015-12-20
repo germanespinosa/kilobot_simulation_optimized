@@ -98,9 +98,17 @@ int find_collisions(int id, double x, double y)
 					{
 						bd = abs(dist_y);
 					}
-					if (bd > 2 * two_r)
+					if (bd > two_r+20)
 					{
-						safe_distance[id][i] = (bd - 2 * two_r) / 3;
+						double speed = robots[id]->speed + robots[i]->speed;
+						if (speed > 0)
+						{
+							safe_distance[id][i] = (bd - (two_r + 20)) / speed;
+						}
+						else
+						{
+							safe_distance[id][i] = 1000000;
+						}
 						safe_distance[i][id] = safe_distance[id][i];
 					}
 				}
@@ -117,7 +125,6 @@ void drawScene(void)
 	GLfloat twicePi = 2.0f * PI;
 	int i, j;
 
-	float forward_motion_step = 1;//motion step size
 	double rotation_step = .05;//motion step size
 							   //run a step of most or all robot controllers
 	for (i = 0;i < num_robots;i++)
@@ -180,13 +187,13 @@ void drawScene(void)
 		case 1:
 		{
 			t += r->motor_error;
-			s = forward_motion_step;
+			s = r->speed;
 			break;
 		}
 		case 2:
 		{
 			t += rotation_step;
-			s = forward_motion_step;
+			s = r->speed;
 			if (r->pos[2] > twicePi)
 			{
 				r->pos[2] -= twicePi;
@@ -196,7 +203,7 @@ void drawScene(void)
 		case 3:
 		{
 			t -= rotation_step;
-			s = forward_motion_step;
+			s = r->speed;
 			if (r->pos[2] < 0)
 			{
 				r->pos[2] += twicePi;

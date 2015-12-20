@@ -156,6 +156,7 @@ class basic_robot : public robot
 	}
 	void robot::init()
 	{
+		battery = 120 * 60 * radius * (1+gauss_rand(timer)*.2);
 		dest[0] = -1;
 		dest[1] = -1;
 		randomize_behavior();
@@ -187,7 +188,9 @@ class basic_robot : public robot
 	}
 	char *robot::get_debug_info()
 	{
-		return "test\n";
+		char buffer[255];
+		sprintf_s(buffer, "basic, %d, %4.2f, %4.2f, %d, %d, %d, %d\n",id,pos[0],pos[1],behavior, seed, disk_id, disk_size);
+		return buffer;
 	}
 
 };

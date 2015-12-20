@@ -47,6 +47,10 @@ public:
 
 	virtual void *get_message(int channel) = 0;
 
+	double speed=1;
+
+	double battery = -1;
+
 	virtual char *get_debug_info() = 0;
 
 	virtual double comm_out_criteria(int channel, double destination_x, double destination_y, int sd) = 0;

@@ -249,6 +249,7 @@ class smart_robot : public robot
 
 	void robot::init()
 	{
+		battery = 360 * 60 * radius * (1 + gauss_rand(timer)*.2);
 		dest[0] = -1;
 		dest[1] = -1;
 		for each(int i in f.disks_status)
@@ -606,7 +607,9 @@ class smart_robot : public robot
 	}
 	char *robot::get_debug_info()
 	{
-		return "test\n";
+		char buffer[255];
+		sprintf_s(buffer, "smart, %d, %4.2f, %4.2f, %d, %d, %4.2, %4.2\n", id, pos[0], pos[1], behavior, closest_disk, dest[0], dest[1]);
+		return buffer;
 	}
 };
 

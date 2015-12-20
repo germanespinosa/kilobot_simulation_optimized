@@ -3,8 +3,28 @@
 
 void robot::robot_controller()
 {
-	timer++;
-	controller();
+	if (battery > 0)
+	{
+		timer++;
+		controller();
+		switch (motor_command)
+		{
+			case 1: {
+				battery -= .5;
+			}
+			case 2 | 3:
+			{
+				battery -= .5;
+			}
+		}
+	}
+	else
+	{
+		speed = 0;
+		color[0] = .3;
+		color[1] = .3;
+		color[1] = .3;
+	}
 }
 
 void robot::robot_init(double x, double y, double t)
