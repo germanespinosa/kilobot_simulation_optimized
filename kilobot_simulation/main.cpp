@@ -12,10 +12,10 @@ using namespace std;
 #define buffer_size 1000000
 #define channels 2 
 //#define delay 10 //delay between time steps, use if program is too fast
-#define log_debug_info true
-#define windowWidth 500 //display window
-#define windowHeight 500 //display window
-#define num_robots 500 //number of robots running
+#define log_debug_info false
+#define windowWidth 800 //display window
+#define windowHeight 800 //display window
+#define num_robots 1000 //number of robots running
 #define num_smart_robots 5 //number of robots running
 #define comm_noise_std 5 //standard dev. of sensor noise
 #define PI 3.14159265358979324

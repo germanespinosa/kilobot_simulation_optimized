@@ -1,14 +1,6 @@
 #include "robot.h"
 #include "touch_channel.h"
 
-#define signal_basic 65536
-#define signal_smart 32768
-#define signal_gradient 16384
-#define signal_recruit 8192
-#define signal_claim 4096
-#define mask_size 31
-#define mask_delay 992
-
 
 class basic_robot : public robot
 {
@@ -32,7 +24,7 @@ class basic_robot : public robot
 
 	void robot::controller()
 	{
-		if (incoming_message_flag == 1)
+		if (incoming_message_flag & touch)
 		{
 			changecolor = 5;
 		}
@@ -40,26 +32,28 @@ class basic_robot : public robot
 		{
 		case 1://wandering
 		{
-			if (incoming_message_flag == 1) //i found a brother
+			if (incoming_message_flag & touch) //i found a brother
 			{
-				incoming_message_flag = 0;
+				incoming_message_flag = incoming_message_flag & !touch;
 				// let's see if he wants to recruit me
-				if (data_in.message & signal_smart && data_in.message & signal_recruit)
+				if (data_in.action==touch_action::recruit_seed)
 				{
 					//i'll be a seed! how exiting!
 					motor_command = 4;
 					seed = true;
-					final_disk_size = data_in.message & mask_size;
-					wait = (data_in.message & mask_delay) >> 5;
+					final_disk_size = data_in.data1;
+					wait = data_in.int_data;
+					disk_id = data_in.data2;
 					disk_size = 0;
 					behavior = 2;
 					steps = 0;
 					break;
 				}
-				if (data_in.message & signal_basic && data_in.message & signal_recruit && data_in.message & signal_gradient)
+				if (data_in.action==touch_action::recruit)
 				{
 					motor_command = 4;
-					disk_size = (data_in.message & 31) - 1;
+					disk_size = data_in.data1-1;
+					disk_id = data_in.data2;
 					behavior = 3;
 					break;
 				}
@@ -83,16 +77,17 @@ class basic_robot : public robot
 		}
 		case 2:
 		{
-			if (steps >= (1000 * wait) + 10)
+			if (steps >= wait + 10)
 			{
 				behavior = 3;
 			}
 			data_out.id = id;
-			data_out.message = signal_basic + signal_gradient;
+			data_out.action=touch_action::accepted;
 			color[0] = 1;
 			color[1] = 0;
 			color[2] = 1;
-			tx_request = 1;
+			if (rand() <RAND_MAX * .2)
+				tx_request = tx_request | touch;
 			break;
 		}
 		case 3:
@@ -101,11 +96,12 @@ class basic_robot : public robot
 			if (incoming_message_flag)
 			{
 				incoming_message_flag = 0;
-				if (!seed && data_in.message & signal_basic && data_in.message & signal_recruit && data_in.message & signal_gradient)
+				if (!seed && data_in.action==touch_action::recruit)
 				{
-					if (disk_size < (data_in.message & 31) - 1)
+					if (disk_size < data_in.data1 - 1)
 					{
-						disk_size = (data_in.message & 31) - 1;
+						disk_size = data_in.data1 - 1;
+						disk_id = data_in.data2;
 						behavior = 3;
 						color[0] = 1;
 						color[1] = 0;
@@ -120,16 +116,25 @@ class basic_robot : public robot
 			if (disk_size > 0)
 			{
 				data_out.id = id;
-				data_out.message = signal_basic + signal_recruit + signal_gradient + disk_size;
+				data_out.action = touch_action::recruit;
+				data_out.data1= disk_size;
+				data_out.data2 = disk_id;
 				color[0] = 1;
 				color[1] = 1;
 				color[2] = 1;
-				tx_request = 1;
+				if (rand() <RAND_MAX * .2)
+					tx_request = tx_request | touch;
 			}
 			else {
+				data_out.id = id;
+				data_out.action = touch_action::border;
+				data_out.data1 = disk_size;
+				data_out.data2 = disk_id;
 				color[0] = 0;
 				color[1] = 1;
 				color[2] = 1;
+				if (rand() <RAND_MAX * .2)
+					tx_request = tx_request | touch;
 			}
 			break;
 		}

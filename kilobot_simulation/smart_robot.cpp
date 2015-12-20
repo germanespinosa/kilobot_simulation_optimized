@@ -6,7 +6,7 @@
 #define time_out 100
 
 
-#define forced_reshuffle 1000
+#define forced_reshuffle 3000
 #define signal_basic 65536
 #define signal_smart 32768
 #define signal_gradient 16384
@@ -153,6 +153,7 @@ class smart_robot : public robot
 		case recruiting:
 		{
 			s_robots = 0;
+			next_forced_reshuffle = 0;
 			f.disks_status[closest_disk] = 4;
 			wifi_out.action = wifi_action::finish; //bid for leadership
 			wifi_out.destination = 0; //broadcast
@@ -363,7 +364,7 @@ class smart_robot : public robot
 		if (incoming_message_flag&touch)
 		{
 			incoming_message_flag = incoming_message_flag & !touch;
-			if (data_in.message == signal_basic + signal_gradient)
+			if (data_in.action==touch_action::accepted)
 			{
 				f.disks_ids[closest_disk] = data_in.id;
 				f.disks_status[closest_disk] = 4;
@@ -373,11 +374,11 @@ class smart_robot : public robot
 			}
 		}
 
-		int msg = f.disks_delay[closest_disk];
-		msg = msg << 5;
-		msg = msg + diskSize(closest_disk);
 		data_out.id = id;
-		data_out.message = signal_smart + signal_recruit + msg;
+		data_out.action=touch_action::recruit_seed;
+		data_out.data1 = diskSize(closest_disk);
+		data_out.data2 = closest_disk;
+		data_out.int_data = f.disks_delay[closest_disk] * 3000;
 		tx_request = tx_request | touch;
 	}
 	void moveToDestination()

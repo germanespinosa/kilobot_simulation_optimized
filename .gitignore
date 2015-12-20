@@ -25,6 +25,7 @@ bld/
 # Visual Studio 2015 cache/options directory
 .vs/
 
+
 # MSTest test Results
 [Tt]est[Rr]esult*/
 [Bb]uild[Ll]og.*
@@ -66,6 +67,7 @@ artifacts/
 *.pidb
 *.svclog
 *.scc
+*.opendb
 
 # Chutzpah Test files
 _Chutzpah*
