@@ -180,4 +180,9 @@ class basic_robot : public robot
 	{
 		return (void *)&data_out;
 	}
+	char *robot::get_debug_info()
+	{
+		return "test\n";
+	}
+
 };

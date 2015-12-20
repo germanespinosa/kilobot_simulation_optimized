@@ -78,7 +78,6 @@ class smart_robot : public robot
 	behavior_enum behavior = behavior_enum::bidding;
 	double prev_pos[3];
 	int steps;
-	double destination[2];
 
 	int bid_leader = 0;
 
@@ -352,8 +351,6 @@ class smart_robot : public robot
 		next_forced_reshuffle = timer + forced_reshuffle;
 		dest[X] = x;
 		dest[Y] = y;
-		destination[X] = dest[X];
-		destination[Y] = dest[Y];
 		behavior = behavior_enum::moving;
 	}
 
@@ -386,7 +383,7 @@ class smart_robot : public robot
 	void moveToDestination()
 	{
 		// find out if we are there yet
-		if (distance(pos[X], pos[Y], destination[0], destination[1]) < tolerance)
+		if (distance(pos[X], pos[Y], dest[X], dest[Y]) < tolerance)
 		{
 			//hurray we are there!
 			if (closest_disk >= 0)
@@ -407,7 +404,7 @@ class smart_robot : public robot
 		//let's see if we are stuck
 		if ((steps % 200) == 0)
 		{
-			if (distance(prev_pos[0], prev_pos[1], pos[0], pos[1]) < min_movement)
+			if (distance(prev_pos[X], prev_pos[Y], pos[X], pos[Y]) < min_movement)
 			{
 				steps = 0;
 				behavior = evading; //evade the obstacle
@@ -420,7 +417,7 @@ class smart_robot : public robot
 		}
 
 		// let's find the direction we need to move to
-		double target_tetha = find_theta(pos[X], pos[Y], destination[0], destination[1]);
+		double target_tetha = find_theta(pos[X], pos[Y], dest[X], dest[Y]);
 		// lets move 
 		motor_command = defineAction(pos[T], target_tetha);
 	}
@@ -605,6 +602,10 @@ class smart_robot : public robot
 			return (void *)&data_out;
 		else
 			return (void *)&wifi_out;
+	}
+	char *robot::get_debug_info()
+	{
+		return "test\n";
 	}
 };
 

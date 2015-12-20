@@ -47,6 +47,8 @@ public:
 
 	virtual void *get_message(int channel) = 0;
 
+	virtual char *get_debug_info() = 0;
+
 	virtual double comm_out_criteria(int channel, double destination_x, double destination_y, int sd) = 0;
 	virtual bool comm_in_criteria(int channel, double source_x, double source_y, double distance, void *cd) = 0;
 

@@ -9,8 +9,10 @@
 using namespace std;
 
 
+#define buffer_size 1000000
 #define channels 2 
 //#define delay 10 //delay between time steps, use if program is too fast
+#define log_debug_info true
 #define windowWidth 500 //display window
 #define windowHeight 500 //display window
 #define num_robots 500 //number of robots running
@@ -23,6 +25,7 @@ using namespace std;
 #define arena_height 2400
 #define SKIPFRAMES 0
 #define shuffles 20
+
 // Global vars.
 double time_sim;  //simulation time
 float zoom, view_x, view_y; //var. for zoom and scroll
@@ -33,6 +36,25 @@ int order[shuffles * num_robots];
 
 int delay = 0;
 
+FILE *results;
+
+char log_buffer[255];
+char log_file_buffer[buffer_size];
+
+void log_info(char *s)
+{
+	static char *m = log_file_buffer;
+	//cout << s;
+	strcpy_s(m,255, s);
+	m += strlen(s);
+	if (m - log_file_buffer >= buffer_size-255)
+	{
+		fopen_s(&results,"myfile2.txt", "a");
+		fprintf(results, "%s", log_file_buffer);
+		fclose(results);
+		m = log_file_buffer;
+	}
+}
 //check to see if motion causes robots to collide
 int find_collisions(int id, double x, double y)
 {
@@ -249,6 +271,11 @@ void drawScene(void)
 		glutSwapBuffers();
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	}
+	if (log_debug_info)
+	{
+		for (int i = 0;i < num_robots;i++)
+			log_info(robots[i]->get_debug_info());
+	}
 	cout << time_sim << endl;
 	time_sim++;
 }
@@ -385,8 +412,13 @@ void setup_positions()
 int main(int argc, char **argv)
 {
 	//seed random variable for different random behavior every time
-	srand(time(NULL));
-
+	unsigned int t = time(NULL);
+	
+	sprintf_s(log_buffer, "random seed: %d\n", t);
+	
+	log_info(log_buffer);
+	srand(t);
+	
 	//set the simulation time to 0
 	time_sim = 0;
 
