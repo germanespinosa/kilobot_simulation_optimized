@@ -186,10 +186,9 @@ class basic_robot : public robot
 	{
 		return (void *)&data_out;
 	}
-	char *robot::get_debug_info()
+	char *robot::get_debug_info(char *buffer, char *rt)
 	{
-		char buffer[255];
-		sprintf_s(buffer, "basic, %d, %4.2f, %4.2f, %d, %d, %d, %d\n",id,pos[0],pos[1],behavior, seed, disk_id, disk_size);
+		sprintf_s(buffer,255, "%s, basic, %d, %4.2f, %4.2f, %d, %s, %d, %d\n",rt, id,pos[0],pos[1],behavior, seed ? "true" : "false", disk_id, disk_size);
 		return buffer;
 	}
 

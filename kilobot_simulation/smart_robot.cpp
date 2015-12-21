@@ -605,10 +605,9 @@ class smart_robot : public robot
 		else
 			return (void *)&wifi_out;
 	}
-	char *robot::get_debug_info()
+	char *robot::get_debug_info(char *buffer, char *rt)
 	{
-		char buffer[255];
-		sprintf_s(buffer, "smart, %d, %4.2f, %4.2f, %d, %d, %4.2, %4.2\n", id, pos[0], pos[1], behavior, closest_disk, dest[0], dest[1]);
+		sprintf_s(buffer,255, "%s, smart, %d, %4.2f, %4.2f, %d, %d, %4.2f, %4.2f\n", rt, id, pos[0], pos[1], behavior, closest_disk, dest[0], dest[1]);
 		return buffer;
 	}
 };

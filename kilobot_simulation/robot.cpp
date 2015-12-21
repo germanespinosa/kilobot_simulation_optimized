@@ -21,6 +21,7 @@ void robot::robot_controller()
 	else
 	{
 		speed = 0;
+		motor_command = 4;
 		color[0] = .3;
 		color[1] = .3;
 		color[1] = .3;

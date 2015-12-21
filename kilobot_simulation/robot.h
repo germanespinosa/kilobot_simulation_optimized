@@ -24,7 +24,7 @@ public:
 					 //robot commanded motion 1=forward, 2=cw rotation, 3=ccw rotation, 4=stop
 	int motor_command;
 
-	int dest[3];
+	double dest[3];
 
 	//must implement an robot initialization
 	void robot_init(double, double, double);
@@ -51,7 +51,7 @@ public:
 
 	double battery = -1;
 
-	virtual char *get_debug_info() = 0;
+	virtual char *get_debug_info(char *buffer, char *rt) = 0;
 
 	virtual double comm_out_criteria(int channel, double destination_x, double destination_y, int sd) = 0;
 	virtual bool comm_in_criteria(int channel, double source_x, double source_y, double distance, void *cd) = 0;

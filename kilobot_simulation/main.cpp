@@ -12,23 +12,24 @@ using namespace std;
 #define buffer_size 1000000
 #define channels 2 
 //#define delay 10 //delay between time steps, use if program is too fast
-#define log_debug_info false
 #define windowWidth 800 //display window
 #define windowHeight 800 //display window
-#define num_robots 1000 //number of robots running
-#define num_smart_robots 5 //number of robots running
 #define comm_noise_std 5 //standard dev. of sensor noise
 #define PI 3.14159265358979324
+#define twicePi  2 * PI
 #define radius 16 //radius of a robot
 #define p_control_execute .99 // probability of a controller executing its time step
 #define arena_width 2400
 #define arena_height 2400
 #define SKIPFRAMES 0
 #define shuffles 20
-
+#define circledef 30
 // Global vars.
 double time_sim;  //simulation time
 float zoom, view_x, view_y; //var. for zoom and scroll
+
+#define num_robots 1000 //number of robots running
+#define num_smart_robots 5 //number of robots running
 
 robot** robots = new robot*[num_robots];//creates an array of robots
 int safe_distance[num_robots][num_robots];
@@ -41,12 +42,24 @@ FILE *results;
 char log_buffer[255];
 char log_file_buffer[buffer_size];
 
+
+bool log_debug_info = true;
+char log_file_name[255];
+bool showscene = true;
+
+int secs;
+char rt[100];
+
+double ch[radius];
+
+
 void log_info(char *s)
 {
 	static char *m = log_file_buffer;
 	//cout << s;
-	strcpy_s(m,255, s);
-	m += strlen(s);
+	int l = strlen(s)+1;
+	strcpy_s(m, l, s);
+	m += l-1;
 	if (m - log_file_buffer >= buffer_size-255)
 	{
 		fopen_s(&results,"myfile2.txt", "a");
@@ -116,13 +129,21 @@ int find_collisions(int id, double x, double y)
 		}
 	}
 	return 0;
-
 }
 
-// Drawing routine.
-void drawScene(void)
+void run_simulation_step()
 {
-	GLfloat twicePi = 2.0f * PI;
+	static int lastrun = 0;
+	lastrun++;
+
+	secs = lastrun / radius;
+
+	int mins = secs / 60;
+	secs = secs % 60;
+	int hours = mins / 60;
+	mins = mins % 60;
+	sprintf_s(rt, 100, "%02d:%02d:%02d", hours, mins, secs);
+
 	int i, j;
 
 	double rotation_step = .05;//motion step size
@@ -220,69 +241,60 @@ void drawScene(void)
 		}
 		r->pos[2] = t;
 	}
+	static int lastmin = 0;
+	if (log_debug_info)
+	{
+		if (lastmin!=mins)
+		{
+			lastmin = mins;
+			char buffer[255];
+			for (int i = 0;i < num_robots;i++)
+				log_info(robots[i]->get_debug_info(buffer, rt));
+		}
+	}
+}
 
+// Drawing routine.
+void drawScene(void)
+{
+	run_simulation_step();
 	//draws the arena
 	glColor4f(0, 0, 0, 0);
 	glRectd(0, 0, arena_width, arena_height);
 
-	//draw robots
-	static int lastrun = 0;
-
-	lastrun++;
-	// moves 1 pixel per iteration, radius is half of the body length
-	// so if it moves radius pixels is moving half of body lenght
-	// it reality they move that much in a second
-	int secs = lastrun / radius;
-	int mins = secs / 60;
-	secs = secs % 60;
-	int hours = mins / 60;
-	mins = mins % 60;
-	char rt[100];
-	sprintf_s(rt, "simulated running time %02d:%02d:%02d", hours, mins, secs);
 	glutSetWindowTitle(rt);
-
-	if (!(lastrun % (SKIPFRAMES + 1)) && lastrun>100)
+	glEnable(GL_LINE_SMOOTH);
+	glLineWidth(1.0);
+	glBegin(GL_LINES);
+	for (int i = 0; i <= radius; i++)
 	{
-		int triangleAmount = 260 / zoom * 50 + 20; //level of detail is determined by the zoom
-		glEnable(GL_LINE_SMOOTH);
-		glLineWidth(1.0);
-		glBegin(GL_LINES);
-		for (i = 0; i <= triangleAmount; i++)
-		{
-			double c = cos(i * twicePi / triangleAmount);
-			double s = sin(i * twicePi / triangleAmount);
-			for (int j = 0;j < num_robots;j++)
-			{
-
-				glColor4f(robots[j]->color[0], robots[j]->color[1], robots[j]->color[2], 1.0);
-				glVertex2f(robots[j]->pos[0], robots[j]->pos[1]);
-				glVertex2f(robots[j]->pos[0] + (radius * c), robots[j]->pos[1] + (radius * s));
-			}
-		}
 		for (int j = 0;j < num_robots;j++)
 		{
-			glBegin(GL_LINES);
-			glColor4f(0, 0, 0, 1.0);
-			glVertex2f(robots[j]->pos[0], robots[j]->pos[1]);
-			glVertex2f(robots[j]->pos[0] + cos(robots[j]->pos[2])*radius, robots[j]->pos[1] + sin(robots[j]->pos[2])*radius);
-			if (robots[j]->dest[0] != -1)
-			{
-				glBegin(GL_LINES);
-				glColor4f(1, 1, 1, 1.0);
-				glVertex2f(robots[j]->pos[0], robots[j]->pos[1]);
-				glVertex2f(robots[j]->dest[0], robots[j]->dest[1]);
-			}
+			glColor4f(robots[j]->color[0], robots[j]->color[1], robots[j]->color[2], 1.0);
+			glVertex2f(robots[j]->pos[0]-i, robots[j]->pos[1]-ch[i]);
+			glVertex2f(robots[j]->pos[0] -i, robots[j]->pos[1] + ch[i]);
+			glVertex2f(robots[j]->pos[0] + i, robots[j]->pos[1] - ch[i]);
+			glVertex2f(robots[j]->pos[0] + i, robots[j]->pos[1] + ch[i]);
 		}
-		glEnd();
-		glFlush();
-		glutSwapBuffers();
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	}
-	if (log_debug_info)
+	for (int j = 0;j < num_robots;j++)
 	{
-		for (int i = 0;i < num_robots;i++)
-			log_info(robots[i]->get_debug_info());
+		glBegin(GL_LINES);
+		glColor4f(0, 0, 0, 1.0);
+		glVertex2f(robots[j]->pos[0], robots[j]->pos[1]);
+		glVertex2f(robots[j]->pos[0] + cos(robots[j]->pos[2])*radius, robots[j]->pos[1] + sin(robots[j]->pos[2])*radius);
+		if (robots[j]->dest[0] != -1)
+		{
+			glBegin(GL_LINES);
+			glColor4f(1, 1, 1, 1.0);
+			glVertex2f(robots[j]->pos[0], robots[j]->pos[1]);
+			glVertex2f(robots[j]->dest[0], robots[j]->dest[1]);
+		}
 	}
+	glEnd();
+	glFlush();
+	glutSwapBuffers();
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	cout << time_sim << endl;
 	time_sim++;
 }
@@ -306,12 +318,6 @@ void setup(void)
 	for (int i = 0;i < num_robots;i++)
 		for (int j = 0;j < num_robots;j++)
 			safe_distance[i][j] = 0;
-
-
-	glMatrixMode(GL_PROJECTION);
-	glLoadIdentity();
-	glOrtho(0.0f, 1000, 1000, 0.0f, 0.0f, 1.0f);
-	glClearColor(1.0, 1.0, 1.0, 0.0);
 }
 
 // OpenGL window reshape routine.
@@ -438,21 +444,31 @@ int main(int argc, char **argv)
 	//setup_positions_gradient();
 	setup_positions();
 
-	//do some open gl stuff
-
-
-	glutInit(&argc, argv);
-	glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
-	glutInitWindowSize(windowWidth, windowHeight);
-	glutInitWindowPosition(0, 0);
-
-	glutCreateWindow("Kilobot simulator");
 	setup();
-	glutDisplayFunc(drawScene);
-	glutReshapeFunc(resize);
-	glutIdleFunc(OnIdle);
-	glutKeyboardFunc(keyInput);
-	glutMainLoop();
 
+	//do some open gl stuff
+	if (showscene)
+	{
+		for (int i = 0;i < radius;i++)
+		{
+			ch[i] = sqrt(radius*radius-i*i);
+		}
+		glutInit(&argc, argv);
+		glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
+		glutInitWindowSize(windowWidth, windowHeight);
+		glutInitWindowPosition(0, 0);
+
+		glMatrixMode(GL_PROJECTION);
+		glLoadIdentity();
+		glOrtho(0.0f, 1000, 1000, 0.0f, 0.0f, 1.0f);
+		glClearColor(1.0, 1.0, 1.0, 0.0);
+
+		glutCreateWindow("Kilobot simulator");
+		glutDisplayFunc(drawScene);
+		glutReshapeFunc(resize);
+		glutIdleFunc(OnIdle);
+		glutKeyboardFunc(keyInput);
+		glutMainLoop();
+	}
 	return 0;
 }
