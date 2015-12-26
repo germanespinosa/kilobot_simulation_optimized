@@ -27,6 +27,9 @@
     <ClInclude Include="simplebmp.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="smart_robot.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">

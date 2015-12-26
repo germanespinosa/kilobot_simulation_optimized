@@ -5,7 +5,7 @@
 #include <string>
 #include <time.h>
 #include "robot.h"
-#include "smart_robot.cpp"
+#include "smart_robot.h"
 #include "basic_robot.cpp"
 
 
@@ -49,6 +49,9 @@ bool log_debug_info = true;
 char log_file_name[255] = "simulation.log";
 bool showscene = true;
 
+char shape_file_name[255] = "";
+
+
 int total_secs;
 int timelimit = 90 * 60;
 char rt[100];
@@ -70,7 +73,6 @@ unsigned int seed = 0;
 void log_info(char *s)
 {
 	static char *m = log_file_buffer;
-	//cout << s;
 	if (s)
 	{
 		int l = strlen(s) + 1;
@@ -272,7 +274,11 @@ bool run_simulation_step()
 	bool result = false;
 	if ((lastsec!=secs && lastrun>1 && snapshot )|| last)
 	{
-		cout << rt << endl;
+		if (last)
+			cout << "ended\n";
+		else
+			cout << rt << endl;
+
 		lastsec = secs;
 		if (!snapshotcounter || last)
 		{
@@ -535,13 +541,20 @@ int main(int argc, char **argv)
 		{
 			seed = stoi(argv[i + 1]);
 		}
+		if (strcmp(argv[i], "/shape") == 0)
+		{
+			strcpy_s(shape_file_name, 255, argv[i + 1]);
+		}
 	}
 
 	robots = (robot **)malloc(num_robots * sizeof(robot *));//creates an array of robots
 	safe_distance = (int *) malloc(num_robots * num_robots * sizeof(int));
 	order = (int *) malloc(shuffles * num_robots * sizeof(int));
-
-
+	if (*shape_file_name)
+	{
+		smart_robot r;
+		r.load_shape(shape_file_name);
+	}
 	//seed random variable for different random behavior every time
 	unsigned int t = 0;
 	

@@ -1,94 +1,44 @@
-#include "robot.h"
-#include "touch_channel.h"
-#include "wifi_channel.h"
-#include <iostream>
-
-#define time_out 100
+#include "smart_robot.h"
 
 
-#define forced_reshuffle 3000
-#define signal_basic 65536
-#define signal_smart 32768
-#define signal_gradient 16384
-#define signal_recruit 8192
-#define signal_claim 4096
-#define mask_size 31
-#define mask_delay 992
+	double smart_robot::figure_x = 1200;
+	double smart_robot::figure_y = 1200;
+	int smart_robot::figure_scale = 100;
+	int smart_robot::figure_thickness = 4;
 
+	int smart_robot::disks = 37;
+	int smart_robot::disks_priority[100] = { 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1 };
+	int smart_robot::disks_size[100] = { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 };
+	int smart_robot::disks_delay[100] = { 10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10 };
+	int smart_robot::disks_center_x[100] = { -9,-8,-7,-6,-5,-4,-3,-2,-1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9,-9,-8,-7,-6,-5,-4,-3,-2,-1, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+	int smart_robot::disks_center_y[100] = { -9,-8,-7,-6,-5,-4,-3,-2,-1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 9, 8, 7, 6, 5, 4, 3, 2, 1,-1,-2,-3,-4,-5,-6,-7,-8,-9 };
 
-#define min_movement 40
-#define tolerance 5
-#define PI 3.14159265358979324
+	int smart_robot::bases = 4;
+	int smart_robot::bases_x[4] = { -11,11,  0, 0 };
+	int smart_robot::bases_y[4] = { 0, 0,-11,11 };
 
-
-class FigureX
-{
-public:
-	int disks = 37;
-	int disks_priority[37]  = { 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1 };
-	int disks_size[37] =      { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 };
-	int disks_delay[37] =    { 10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10 };
-	int disks_center_x[37] = { -9,-8,-7,-6,-5,-4,-3,-2,-1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9,-9,-8,-7,-6,-5,-4,-3,-2,-1, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
-	int disks_center_y[37] = { -9,-8,-7,-6,-5,-4,-3,-2,-1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 9, 8, 7, 6, 5, 4, 3, 2, 1,-1,-2,-3,-4,-5,-6,-7,-8,-9 };
-	int disks_status[37];
-	int disks_ids[37];
-
-	int bases = 4;
-	int bases_x[4] = { -11,11,  0, 0};
-	int bases_y[4] = {   0, 0,-11,11};
-
-	double figure_x = 1200;
-	double figure_y = 1200;
-	int figure_scale = 100;
-	int figure_thickness = 4;
-
-};
-
-
-
-class smart_robot : public robot
-{
-	enum behavior_enum
+	void smart_robot::load_shape(char *filename)
 	{
-		bidding,
-		assigning,
-		receiving,
-		moving,
-		evading,
-		recruiting,
-		registering,
-		finish
-	};
 
-	//comms
-	//received data goes here
-	touch_data data_in;
-	//data to transmitt goes here
-	touch_data data_out;
+		FILE *shape;
+		fopen_s(&shape, filename, "r");
+		if (shape)
+		{
 
-	//comms
-	//received data goes here
-	wifi_data wifi_in;
-	//data to transmitt goes here
-	wifi_data wifi_out;
+			fscanf_s(shape, "%d,%d,%lf,%lf,%d,%d\n", &disks, & bases, &figure_x, &figure_y, &figure_scale, &figure_thickness);
+			for (int i = 0;i < disks;i++)
+			{
+				fscanf_s(shape, "%d,%d,%d,%d,%d\n", &disks_center_x[i], &disks_center_y[i], &disks_priority[i], &disks_size[i], &disks_delay[i]);
+			}
+			for (int i = 0;i < bases;i++)
+			{
+				fscanf_s(shape, "%d,%d\n", &bases_x[i], &bases_y[i]);
+			}
+			fclose(shape);
+		}
+	}
 
-	FigureX f;
-
-	int closest_disk = -1;
-	behavior_enum behavior = behavior_enum::bidding;
-	double prev_pos[3];
-	int steps;
-
-	int bid_leader = 0;
-
-	int s_robots = 0;
-	int s_rob_id[100];
-	double s_rob_pos[100][2];
-	int s_rob_disk[100];
-
-	int next_forced_reshuffle = 0;
-
-	void robot::controller()
+	void smart_robot::controller()
 	{
 		motor_command = 4;
 		if (next_forced_reshuffle && timer > next_forced_reshuffle)
@@ -154,7 +104,7 @@ class smart_robot : public robot
 		{
 			s_robots = 0;
 			next_forced_reshuffle = 0;
-			f.disks_status[closest_disk] = 4;
+			disks_status[closest_disk] = 4;
 			wifi_out.action = wifi_action::finish; //bid for leadership
 			wifi_out.destination = 0; //broadcast
 			wifi_out.id = id;
@@ -171,11 +121,11 @@ class smart_robot : public robot
 		}
 		}
 		send_assigned();
-		set_color();
+		smart_robot::set_color();
 		steps++;
 	}
 
-	void set_color()
+	void smart_robot::set_color()
 	{
 		switch (behavior)
 		{
@@ -232,7 +182,7 @@ class smart_robot : public robot
 		}
 	}
 
-	void send_assigned()
+	void smart_robot::send_assigned()
 	{
 		if (s_robots > 0 && behavior==behavior_enum::moving)
 		{
@@ -247,29 +197,29 @@ class smart_robot : public robot
 		}
 	}
 
-	void robot::init()
+	void smart_robot::init()
 	{
 		battery = 360 * 60 * radius * (1 + gauss_rand(timer)*.2);
 		dest[0] = -1;
 		dest[1] = -1;
-		for each(int i in f.disks_status)
-			i = 0;
+		for (int i = 0;i < disks;i++)
+			disks_status[i] = 0;
 	}
 
-	double diskX(int i)
+	double smart_robot::diskX(int i)
 	{
-		return f.figure_x + f.disks_center_x[i] * f.figure_scale;
+		return smart_robot::figure_x + disks_center_x[i] * figure_scale;
 	}
-	double diskY(int i)
+	double smart_robot::diskY(int i)
 	{
-		return f.figure_y + f.disks_center_y[i] * f.figure_scale;
+		return figure_y + disks_center_y[i] * figure_scale;
 	}
-	int diskSize(int i)
+	int smart_robot::diskSize(int i)
 	{
-		return f.disks_size[i] * f.figure_thickness;
+		return disks_size[i] * figure_thickness;
 	}
 
-	void findClosestDisk()
+	void smart_robot::findClosestDisk()
 	{
 		s_rob_id[s_robots] = id;
 		s_rob_pos[s_robots][0] = pos[0];
@@ -293,12 +243,12 @@ class smart_robot : public robot
 			int priority = -1;
 			int selD = -1;
 			double dist = -1;
-			for (int i = 0;i < f.disks;i++)
+			for (int i = 0;i < disks;i++)
 			{
-				if (f.disks_status[i] == 0 && (priority >= f.disks_priority[i] || selD == -1))
+				if (disks_status[i] == 0 && (priority >= disks_priority[i] || selD == -1))
 				{
 					double newdist = distance(s_rob_pos[selR][0], s_rob_pos[selR][1], diskX(i), diskY(i));
-					if (newdist < dist || selD == -1 || priority > f.disks_priority[i])
+					if (newdist < dist || selD == -1 || priority > disks_priority[i])
 					{
 						int prev = -1;
 						for (int j = 0; j < s_robots;j++)
@@ -320,7 +270,7 @@ class smart_robot : public robot
 						{
 							selD = i;
 							dist = newdist;
-							priority = f.disks_priority[i];
+							priority = disks_priority[i];
 						}
 					}
 				}
@@ -348,7 +298,7 @@ class smart_robot : public robot
 		}
 	}
 
-	void setDestination(double x, double y)
+	void smart_robot::setDestination(double x, double y)
 	{
 		next_forced_reshuffle = timer + forced_reshuffle;
 		dest[X] = x;
@@ -356,7 +306,7 @@ class smart_robot : public robot
 		behavior = behavior_enum::moving;
 	}
 
-	void recruitBasicRobot()
+	void smart_robot::recruitBasicRobot()
 	{
 		color[0] = 0;
 		color[1] = 0;
@@ -367,8 +317,8 @@ class smart_robot : public robot
 			incoming_message_flag = incoming_message_flag & !touch;
 			if (data_in.action==touch_action::accepted)
 			{
-				f.disks_ids[closest_disk] = data_in.id;
-				f.disks_status[closest_disk] = 4;
+				disks_ids[closest_disk] = data_in.id;
+				disks_status[closest_disk] = 4;
 				steps = 0;
 				behavior = bidding;
 				return;
@@ -379,10 +329,10 @@ class smart_robot : public robot
 		data_out.action=touch_action::recruit_seed;
 		data_out.data1 = diskSize(closest_disk);
 		data_out.data2 = closest_disk;
-		data_out.int_data = f.disks_delay[closest_disk] * 3000;
+		data_out.int_data = disks_delay[closest_disk] * 3000;
 		tx_request = tx_request | touch;
 	}
-	void moveToDestination()
+	void smart_robot::moveToDestination()
 	{
 		// find out if we are there yet
 		if (distance(pos[X], pos[Y], dest[X], dest[Y]) < tolerance)
@@ -424,7 +374,7 @@ class smart_robot : public robot
 		motor_command = defineAction(pos[T], target_tetha);
 	}
 
-	int defineAction(double at, double tt)
+	int smart_robot::defineAction(double at, double tt)
 	{
 		double td = robot::tetha_diff(at, tt);
 		if ((td > -.1) && (td < .1))
@@ -443,7 +393,7 @@ class smart_robot : public robot
 		}
 	}
 
-	void checkIncoming()
+	void smart_robot::checkIncoming()
 	{
 		incoming_message_flag = incoming_message_flag & !wifi;
 		switch (wifi_in.action)
@@ -505,26 +455,26 @@ class smart_robot : public robot
 		}
 		case wifi_action::finish:
 		{
-			f.disks_status[wifi_in.int_data1] = 4;
+			disks_status[wifi_in.int_data1] = 4;
 			break;
 		}
 		}
 	}
 
-	void gotobase()
+	void smart_robot::gotobase()
 	{
 		int closest_base = 0;
-		for (int i = 1;i < f.bases;i++)
+		for (int i = 1;i < bases;i++)
 		{
-			if (distance(pos[0], pos[1], f.figure_x + f.figure_scale *f.bases_x[closest_base], f.figure_y + f.figure_scale *f.bases_y[closest_base]) > distance(pos[0], pos[1], f.figure_x + f.figure_scale *f.bases_x[i], f.figure_y + f.figure_scale *f.bases_y[i]))
+			if (distance(pos[0], pos[1], smart_robot::figure_x + figure_scale *smart_robot::bases_x[closest_base], figure_y + figure_scale *bases_y[closest_base]) > distance(pos[0], pos[1], smart_robot::figure_x + figure_scale *smart_robot::bases_x[i], figure_y + figure_scale *bases_y[i]))
 			{
 				closest_base = i;
 			}
 		}
-		setDestination(f.figure_x + f.figure_scale *f.bases_x[closest_base], f.figure_y + f.figure_scale *f.bases_y[closest_base]);
+		setDestination(smart_robot::figure_x + figure_scale *bases_x[closest_base], figure_y + figure_scale *bases_y[closest_base]);
 	}
 
-	void evadeObstacle(bool reset)
+	void smart_robot::evadeObstacle(bool reset)
 	{
 		static int rnd_steps;
 		static int rnd_direction;
@@ -547,14 +497,14 @@ class smart_robot : public robot
 			steps = 0;
 		}
 	}
-	void recordPosition()
+	void smart_robot::recordPosition()
 	{
 		prev_pos[X] = pos[X];
 		prev_pos[Y] = pos[Y];
 		prev_pos[T] = pos[T];
 	}
 
-	double robot::comm_out_criteria(int c, double x, double y, int sd)
+	double smart_robot::comm_out_criteria(int c, double x, double y, int sd)
 	{
 		switch (c)
 		{
@@ -574,7 +524,7 @@ class smart_robot : public robot
 		}
 		return 0;
 	}
-	bool robot::comm_in_criteria(int c, double x, double y, double d, void *cd) //omnidirectional
+	bool smart_robot::comm_in_criteria(int c, double x, double y, double d, void *cd) //omnidirectional
 	{
 		switch (c)
 		{
@@ -595,20 +545,19 @@ class smart_robot : public robot
 		}
 		return false;
 	}
-	void robot::sensing(int features, int type[], int x[], int y[], int value[])
+	void smart_robot::sensing(int features, int type[], int x[], int y[], int value[])
 	{
 	}
-	void *robot::get_message(int c)
+	void *smart_robot::get_message(int c)
 	{
 		if (c == 1)
 			return (void *)&data_out;
 		else
 			return (void *)&wifi_out;
 	}
-	char *robot::get_debug_info(char *buffer, char *rt)
+	char *smart_robot::get_debug_info(char *buffer, char *rt)
 	{
-		sprintf_s(buffer,255, "%s, smart, %d, %4.2f, %4.2f, %d, %d, %4.2f, %4.2f\n", rt, id, pos[0], pos[1], behavior, closest_disk, dest[0], dest[1]);
+		sprintf_s(buffer,255, "%s, smart, %d, %4.2f, %4.2f, %d, %d, %4.2f, %4.2f\n", rt, id, pos[0], pos[1], smart_robot::behavior, closest_disk, dest[0], dest[1]);
 		return buffer;
 	}
-};
 
