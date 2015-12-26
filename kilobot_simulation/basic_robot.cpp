@@ -222,7 +222,7 @@ class basic_robot : public robot
 				}
 
 			}
-			if (last_touch > 150)//I lost the shape
+			if (last_touch > 250)//I lost the shape
 			{
 				behavior = behavior::wandering;
 			}

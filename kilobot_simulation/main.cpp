@@ -8,6 +8,7 @@
 #include "smart_robot.cpp"
 #include "basic_robot.cpp"
 
+
 #define SIMPLEBMP_OPENGL 
 #include "simplebmp.h"
 using namespace std;
@@ -48,7 +49,7 @@ bool log_debug_info = true;
 char log_file_name[255] = "simulation.log";
 bool showscene = true;
 
-int secs;
+int total_secs;
 int timelimit = 90 * 60;
 char rt[100];
 
@@ -164,12 +165,11 @@ bool run_simulation_step()
 	static int lastrun = 0;
 	lastrun++;
 
-	secs = lastrun / radius;
+	total_secs = lastrun / radius;
 
-	int mins = secs / 60;
-	secs = secs % 60;
-	int hours = mins / 60;
-	mins = mins % 60;
+	int secs = total_secs % 60;
+	int mins = (total_secs / 60) % 60;
+	int hours = total_secs / 3600;
 	sprintf_s(rt, 100, "%02d:%02d:%02d", hours, mins, secs);
 
 	int i, j;
@@ -272,6 +272,7 @@ bool run_simulation_step()
 	bool result = false;
 	if ((lastsec!=secs && lastrun>1 && snapshot )|| last)
 	{
+		cout << rt << endl;
 		lastsec = secs;
 		if (!snapshotcounter || last)
 		{
@@ -355,14 +356,13 @@ void drawScene(void)
 	}
 	glutSwapBuffers();
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	cout << time_sim << endl;
 	time_sim++;
 	if (last)
 	{
 		log_info(NULL);
 		exit(0);
 	}
-	if (secs >= timelimit)
+	if (total_secs >= timelimit)
 	{
 		last = true;
 	}
@@ -579,20 +579,20 @@ int main(int argc, char **argv)
 	{
 		ch[i] = sqrt(radius*radius - i*i);
 	}
-	glutInit(&argc, argv);
-	glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
-	glutInitWindowSize(windowWidth, windowHeight);
-	glutInitWindowPosition(0, 0);
-
-	glMatrixMode(GL_PROJECTION);
-	glLoadIdentity();
-	glOrtho(0.0f, 1000, 1000, 0.0f, 0.0f, 1.0f);
-	glClearColor(1.0, 1.0, 1.0, 0.0);
-
-	glutCreateWindow("Kilobot simulator");
 
 	if (showscene)
 	{
+		glutInit(&argc, argv);
+		glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
+		glutInitWindowSize(windowWidth, windowHeight);
+		glutInitWindowPosition(0, 0);
+
+		glMatrixMode(GL_PROJECTION);
+		glLoadIdentity();
+		glOrtho(0.0f, 1000, 1000, 0.0f, 0.0f, 1.0f);
+		glClearColor(1.0, 1.0, 1.0, 0.0);
+		glutCreateWindow("Kilobot simulator");
+
 		glutDisplayFunc(drawScene);
 		glutReshapeFunc(resize);
 		glutIdleFunc(OnIdle);
@@ -600,16 +600,26 @@ int main(int argc, char **argv)
 		glutMainLoop();
 	}
 	else {
-		while (secs<timelimit)
+		while (total_secs<timelimit)
 		{
 			run_simulation_step();
 		}
+		glutInit(&argc, argv);
+		glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
+		glutInitWindowSize(windowWidth, windowHeight);
+		glutInitWindowPosition(0, 0);
+
+		glMatrixMode(GL_PROJECTION);
+		glLoadIdentity();
+		glOrtho(0.0f, 1000, 1000, 0.0f, 0.0f, 1.0f);
+		glClearColor(1.0, 1.0, 1.0, 0.0);
+		glutCreateWindow("Kilobot simulator");
+
 		glutDisplayFunc(drawScene);
 		glutReshapeFunc(resize);
 		glutIdleFunc(OnIdle);
 		glutKeyboardFunc(keyInput);
 		glutMainLoop();
 	}
-	log_info(NULL);
 	return 0;
 }
