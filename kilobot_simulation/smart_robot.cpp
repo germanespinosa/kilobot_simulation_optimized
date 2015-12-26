@@ -256,11 +256,11 @@ class smart_robot : public robot
 			i = 0;
 	}
 
-	int diskX(int i)
+	double diskX(int i)
 	{
 		return f.figure_x + f.disks_center_x[i] * f.figure_scale;
 	}
-	int diskY(int i)
+	double diskY(int i)
 	{
 		return f.figure_y + f.disks_center_y[i] * f.figure_scale;
 	}

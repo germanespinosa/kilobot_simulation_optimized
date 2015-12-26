@@ -24,6 +24,9 @@
     <ClInclude Include="wifi_channel.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="simplebmp.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -42,6 +45,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="wifi_channel.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="simplebmp.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

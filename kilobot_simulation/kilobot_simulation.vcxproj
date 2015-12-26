@@ -20,6 +20,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="robot.h" />
+    <ClInclude Include="simplebmp.h" />
     <ClInclude Include="touch_channel.h" />
     <ClInclude Include="wifi_channel.h" />
   </ItemGroup>
@@ -27,6 +28,7 @@
     <ClCompile Include="basic_robot.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="robot.cpp" />
+    <ClCompile Include="simplebmp.cpp" />
     <ClCompile Include="smart_robot.cpp" />
     <ClCompile Include="touch_channel.cpp" />
     <ClCompile Include="wifi_channel.cpp" />
@@ -85,6 +87,10 @@
     <ExecutablePath>.\glew-1.11.0\include;.\freeglut\include;$(ExecutablePath)</ExecutablePath>
     <IncludePath>.\glew-1.11.0\include;.\freeglut\include;$(IncludePath)</IncludePath>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <IncludePath>C:\Users\German\Documents\GitHubVisualStudio\kilobot_simulation_optimized\kilobot_simulation\glew-1.11.0\include;C:\Users\German\Documents\GitHubVisualStudio\kilobot_simulation_optimized\kilobot_simulation\freeglut\include;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Users\German\Documents\GitHubVisualStudio\kilobot_simulation_optimized\kilobot_simulation\glew-1.11.0\lib;C:\Users\German\Documents\GitHubVisualStudio\kilobot_simulation_optimized\kilobot_simulation\freeglut\lib;$(LibraryPath)</LibraryPath>
+  </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
@@ -120,6 +126,8 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
+      <ImportLibrary>
+      </ImportLibrary>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">

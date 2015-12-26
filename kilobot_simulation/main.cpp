@@ -2,38 +2,39 @@
 #include <GL\glew.h>
 #include <GL\freeglut.h>
 #include <iostream>
+#include <string>
 #include <time.h>
 #include "robot.h"
 #include "smart_robot.cpp"
 #include "basic_robot.cpp"
-using namespace std;
 
+#define SIMPLEBMP_OPENGL 
+#include "simplebmp.h"
+using namespace std;
 
 #define buffer_size 1000000
 #define channels 2 
 //#define delay 10 //delay between time steps, use if program is too fast
-#define windowWidth 800 //display window
-#define windowHeight 800 //display window
+#define windowWidth 600 //display window
+#define windowHeight 700 //display window
 #define comm_noise_std 5 //standard dev. of sensor noise
 #define PI 3.14159265358979324
 #define twicePi  2 * PI
 #define radius 16 //radius of a robot
 #define p_control_execute .99 // probability of a controller executing its time step
-#define arena_width 2400
-#define arena_height 2400
 #define SKIPFRAMES 0
 #define shuffles 20
 #define circledef 30
 // Global vars.
 double time_sim;  //simulation time
-float zoom, view_x, view_y; //var. for zoom and scroll
+double zoom, view_x, view_y; //var. for zoom and scroll
 
-#define num_robots 1000 //number of robots running
-#define num_smart_robots 5 //number of robots running
+int num_robots = 1005; //number of robots running
+int num_smart_robots = 5; //number of robots running
 
-robot** robots = new robot*[num_robots];//creates an array of robots
-int safe_distance[num_robots][num_robots];
-int order[shuffles * num_robots];
+robot** robots;//creates an array of robots
+int* safe_distance;
+int* order;
 
 int delay = 0;
 
@@ -44,25 +45,40 @@ char log_file_buffer[buffer_size];
 
 
 bool log_debug_info = true;
-char log_file_name[255];
+char log_file_name[255] = "simulation.log";
 bool showscene = true;
 
 int secs;
+int timelimit = 90 * 60;
 char rt[100];
 
 double ch[radius];
+
+int arena_width = 2400;
+int arena_height = 2400;
+
+int snapshot = 60;
+int snapshotcounter = 0;
+
+bool last = false;
+bool write_final = false;
+
+unsigned int seed = 0;
 
 
 void log_info(char *s)
 {
 	static char *m = log_file_buffer;
 	//cout << s;
-	int l = strlen(s)+1;
-	strcpy_s(m, l, s);
-	m += l-1;
-	if (m - log_file_buffer >= buffer_size-255)
+	if (s)
 	{
-		fopen_s(&results,"myfile2.txt", "a");
+		int l = strlen(s) + 1;
+		strcpy_s(m, l, s);
+		m += l - 1;
+	}
+	if (m - log_file_buffer >= buffer_size-255 || !s)
+	{
+		fopen_s(&results,log_file_name, "a");
 		fprintf(results, "%s", log_file_buffer);
 		fclose(results);
 		m = log_file_buffer;
@@ -82,14 +98,14 @@ int find_collisions(int id, double x, double y)
 	{
 		if (i != id)
 		{
-			if (safe_distance[id][i])
+			if (safe_distance[id*num_robots+i])
 			{
-				safe_distance[id][i]--;
+				safe_distance[id*num_robots + i]--;
 			}
 			else
 			{
-				int dist_x = x - robots[i]->pos[0];
-				int dist_y = y - robots[i]->pos[1];
+				double dist_x = x - robots[i]->pos[0];
+				double dist_y = y - robots[i]->pos[1];
 				if (x_ulim > robots[i]->pos[0] && x_llim<robots[i]->pos[0] &&
 					y_ulim>robots[i]->pos[1] && y_llim < robots[i]->pos[1]) //if not in the sqare limits, i dont even check the circular ones
 				{
@@ -102,7 +118,7 @@ int find_collisions(int id, double x, double y)
 				}
 				else
 				{
-					int bd = 0;
+					double bd = 0;
 					if (abs(dist_x)>abs(dist_y))
 					{
 						bd = abs(dist_x);
@@ -116,13 +132,13 @@ int find_collisions(int id, double x, double y)
 						double speed = robots[id]->speed + robots[i]->speed;
 						if (speed > 0)
 						{
-							safe_distance[id][i] = (bd - (two_r + 20)) / speed;
+							safe_distance[id*num_robots + i] = (int)((bd - (two_r + 20)) / speed);
 						}
 						else
 						{
-							safe_distance[id][i] = 1000000;
+							safe_distance[id*num_robots + i] = 1000000;
 						}
-						safe_distance[i][id] = safe_distance[id][i];
+						safe_distance[i*num_robots + id] = safe_distance[id*num_robots + i];
 					}
 				}
 			}
@@ -131,7 +147,19 @@ int find_collisions(int id, double x, double y)
 	return 0;
 }
 
-void run_simulation_step()
+void SaveAsBMP(const char *fileName)
+{
+
+	// The width and the height, would be the width
+	// and height of your current scene.
+
+	SimpleBMP bmp(windowWidth, windowHeight);
+
+	bmp.glReadPixels();
+	bmp.save(fileName);
+}
+
+bool run_simulation_step()
 {
 	static int lastrun = 0;
 	lastrun++;
@@ -155,7 +183,6 @@ void run_simulation_step()
 		{
 			robots[i]->robot_controller();
 		}
-
 	}
 
 	int seed;
@@ -178,7 +205,7 @@ void run_simulation_step()
 					robot *rd = robots[j];
 					if (j != index)
 					{
-						double range = rs->comm_out_criteria(ch, rd->pos[0], rd->pos[1], safe_distance[index][j]);
+						double range = rs->comm_out_criteria(ch, rd->pos[0], rd->pos[1], safe_distance[index * num_robots + j]);
 						if (range)
 						{
 							void *msg = rs->get_message(ch);
@@ -241,24 +268,42 @@ void run_simulation_step()
 		}
 		r->pos[2] = t;
 	}
-	static int lastmin = 0;
-	if (log_debug_info)
+	static int lastsec =- 1;
+	bool result = false;
+	if ((lastsec!=secs && lastrun>1 && snapshot )|| last)
 	{
-		if (lastmin!=mins)
+		lastsec = secs;
+		if (!snapshotcounter || last)
 		{
-			lastmin = mins;
-			char buffer[255];
-			for (int i = 0;i < num_robots;i++)
-				log_info(robots[i]->get_debug_info(buffer, rt));
+			result = true;
+			if (log_debug_info || last)
+			{
+				char buffer[255];
+				if (last)
+				{
+					for (int i = 0;i < num_robots;i++)
+						log_info(robots[i]->get_debug_info(buffer, "final"));
+				}else
+				{
+					for (int i = 0;i < num_robots;i++)
+						log_info(robots[i]->get_debug_info(buffer, rt));
+				}
+			}
+			snapshotcounter = snapshot;
 		}
+		snapshotcounter--;
 	}
+	return result;
 }
 
 // Drawing routine.
 void drawScene(void)
 {
-	run_simulation_step();
+	static int snapshottaken = 0;
+	static bool takesnapshot = false;
 	//draws the arena
+
+	takesnapshot = run_simulation_step();
 	glColor4f(0, 0, 0, 0);
 	glRectd(0, 0, arena_width, arena_height);
 
@@ -270,33 +315,57 @@ void drawScene(void)
 	{
 		for (int j = 0;j < num_robots;j++)
 		{
-			glColor4f(robots[j]->color[0], robots[j]->color[1], robots[j]->color[2], 1.0);
-			glVertex2f(robots[j]->pos[0]-i, robots[j]->pos[1]-ch[i]);
-			glVertex2f(robots[j]->pos[0] -i, robots[j]->pos[1] + ch[i]);
-			glVertex2f(robots[j]->pos[0] + i, robots[j]->pos[1] - ch[i]);
-			glVertex2f(robots[j]->pos[0] + i, robots[j]->pos[1] + ch[i]);
+			glColor4f((GLfloat)robots[j]->color[0], (GLfloat)robots[j]->color[1], (GLfloat)robots[j]->color[2], 1.0);
+			glVertex2f((GLfloat)(robots[j]->pos[0]-i), (GLfloat)(robots[j]->pos[1]-ch[i]));
+			glVertex2f((GLfloat)(robots[j]->pos[0] -i), (GLfloat)(robots[j]->pos[1] + ch[i]));
+			glVertex2f((GLfloat)(robots[j]->pos[0] + i), (GLfloat)(robots[j]->pos[1] - ch[i]));
+			glVertex2f((GLfloat)(robots[j]->pos[0] + i), (GLfloat)(robots[j]->pos[1] + ch[i]));
 		}
 	}
 	for (int j = 0;j < num_robots;j++)
 	{
 		glBegin(GL_LINES);
 		glColor4f(0, 0, 0, 1.0);
-		glVertex2f(robots[j]->pos[0], robots[j]->pos[1]);
-		glVertex2f(robots[j]->pos[0] + cos(robots[j]->pos[2])*radius, robots[j]->pos[1] + sin(robots[j]->pos[2])*radius);
+		glVertex2f((GLfloat)robots[j]->pos[0], (GLfloat)robots[j]->pos[1]);
+		glVertex2f((GLfloat)(robots[j]->pos[0] + cos(robots[j]->pos[2])*radius), (GLfloat)(robots[j]->pos[1] + sin(robots[j]->pos[2])*radius));
 		if (robots[j]->dest[0] != -1)
 		{
 			glBegin(GL_LINES);
 			glColor4f(1, 1, 1, 1.0);
-			glVertex2f(robots[j]->pos[0], robots[j]->pos[1]);
-			glVertex2f(robots[j]->dest[0], robots[j]->dest[1]);
+			glVertex2f((GLfloat)robots[j]->pos[0], (GLfloat)robots[j]->pos[1]);
+			glVertex2f((GLfloat)robots[j]->dest[0], (GLfloat)robots[j]->dest[1]);
 		}
 	}
 	glEnd();
 	glFlush();
+
+	if (takesnapshot)
+	{
+		snapshottaken++;
+		char file[100];
+		if (last)
+		{
+			sprintf_s(file, 100, "%s.final.bmp", log_file_name);
+		}
+		else 
+		{
+			sprintf_s(file, 100, "%s.%04d.bmp", log_file_name, snapshottaken);
+		}
+		SaveAsBMP(file);
+	}
 	glutSwapBuffers();
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	cout << time_sim << endl;
 	time_sim++;
+	if (last)
+	{
+		log_info(NULL);
+		exit(0);
+	}
+	if (secs >= timelimit)
+	{
+		last = true;
+	}
 }
 
 // Initialization routine.
@@ -317,7 +386,7 @@ void setup(void)
 		}
 	for (int i = 0;i < num_robots;i++)
 		for (int j = 0;j < num_robots;j++)
-			safe_distance[i][j] = 0;
+			safe_distance[i * num_robots + j] = 0;
 }
 
 // OpenGL window reshape routine.
@@ -387,7 +456,7 @@ void setup_positions()
 	if (num_robots % columns) rows++;
 	int horizontal_separation = arena_width / (columns + 1);
 	int vertical_separation = (int)arena_height / (rows + 1);
-	bool smart[num_robots];
+	bool *smart=(bool*)malloc(num_robots*sizeof(bool));
 	for (int i = 0;i < num_robots;i++)
 		smart[i] = false;
 	for (int i = 0;i < num_smart_robots;i++)
@@ -424,9 +493,67 @@ void setup_positions()
 // Main routine.
 int main(int argc, char **argv)
 {
+	for (int i = 0;i < argc-1;i++)
+	{
+		if (strcmp(argv[i],"/r")==0)
+		{
+			num_robots = stoi(argv[i + 1]);
+		}
+		if (strcmp(argv[i], "/s") == 0)
+		{
+			num_smart_robots = stoi(argv[i + 1]);
+		}
+		if (strcmp(argv[i], "/l") == 0)
+		{
+			log_debug_info = argv[i + 1][0]=='y';
+		}
+		if (strcmp(argv[i], "/d") == 0)
+		{
+			showscene = argv[i + 1][0] == 'y';
+		}
+		if (strcmp(argv[i], "/aw") == 0)
+		{
+			arena_width = stoi(argv[i + 1]);
+		}
+		if (strcmp(argv[i], "/ah") == 0)
+		{
+			arena_height = stoi(argv[i + 1]);
+		}
+		if (strcmp(argv[i], "/t") == 0)
+		{
+			timelimit = stoi(argv[i + 1]) ;
+		}
+		if (strcmp(argv[i], "/f") == 0)
+		{
+			strcpy_s(log_file_name,255, argv[i + 1]);
+		}
+		if (strcmp(argv[i], "/ss") == 0)
+		{
+			snapshot = stoi(argv[i + 1]);
+		}
+		if (strcmp(argv[i], "/seed") == 0)
+		{
+			seed = stoi(argv[i + 1]);
+		}
+	}
+
+	robots = (robot **)malloc(num_robots * sizeof(robot *));//creates an array of robots
+	safe_distance = (int *) malloc(num_robots * num_robots * sizeof(int));
+	order = (int *) malloc(shuffles * num_robots * sizeof(int));
+
+
 	//seed random variable for different random behavior every time
-	unsigned int t = time(NULL);
+	unsigned int t = 0;
 	
+	if (seed)
+	{
+		t = seed;
+	}
+	else
+	{
+		t= (unsigned int) time(NULL);
+	}
+
 	sprintf_s(log_buffer, "random seed: %d\n", t);
 	
 	log_info(log_buffer);
@@ -436,7 +563,7 @@ int main(int argc, char **argv)
 	time_sim = 0;
 
 	//inital zoom and scroll positions
-	zoom = arena_height;
+	zoom = arena_width;
 	view_x = arena_width;
 	view_y = arena_height;
 
@@ -447,28 +574,42 @@ int main(int argc, char **argv)
 	setup();
 
 	//do some open gl stuff
+
+	for (int i = 0;i < radius;i++)
+	{
+		ch[i] = sqrt(radius*radius - i*i);
+	}
+	glutInit(&argc, argv);
+	glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
+	glutInitWindowSize(windowWidth, windowHeight);
+	glutInitWindowPosition(0, 0);
+
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	glOrtho(0.0f, 1000, 1000, 0.0f, 0.0f, 1.0f);
+	glClearColor(1.0, 1.0, 1.0, 0.0);
+
+	glutCreateWindow("Kilobot simulator");
+
 	if (showscene)
 	{
-		for (int i = 0;i < radius;i++)
-		{
-			ch[i] = sqrt(radius*radius-i*i);
-		}
-		glutInit(&argc, argv);
-		glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
-		glutInitWindowSize(windowWidth, windowHeight);
-		glutInitWindowPosition(0, 0);
-
-		glMatrixMode(GL_PROJECTION);
-		glLoadIdentity();
-		glOrtho(0.0f, 1000, 1000, 0.0f, 0.0f, 1.0f);
-		glClearColor(1.0, 1.0, 1.0, 0.0);
-
-		glutCreateWindow("Kilobot simulator");
 		glutDisplayFunc(drawScene);
 		glutReshapeFunc(resize);
 		glutIdleFunc(OnIdle);
 		glutKeyboardFunc(keyInput);
 		glutMainLoop();
 	}
+	else {
+		while (secs<timelimit)
+		{
+			run_simulation_step();
+		}
+		glutDisplayFunc(drawScene);
+		glutReshapeFunc(resize);
+		glutIdleFunc(OnIdle);
+		glutKeyboardFunc(keyInput);
+		glutMainLoop();
+	}
+	log_info(NULL);
 	return 0;
 }
