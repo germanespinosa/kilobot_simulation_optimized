@@ -5,6 +5,15 @@ VisualStudioVersion = 14.0.24720.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "kilobot_simulation", "kilobot_simulation\kilobot_simulation.vcxproj", "{925D1517-7736-40E7-A03E-8A5B4BC13DFC}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{50726ABD-E4AD-4973-811D-CFBB544CF969}"
+	ProjectSection(SolutionItems) = preProject
+		Release\freeglut.dll = Release\freeglut.dll
+		Release\glew32.dll = Release\glew32.dll
+		Release\kilobot_simulation.exe = Release\kilobot_simulation.exe
+		Release\shape.cfg = Release\shape.cfg
+		Release\tests.ps1 = Release\tests.ps1
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
