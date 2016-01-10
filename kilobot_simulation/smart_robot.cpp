@@ -122,6 +122,7 @@
 		}
 		send_assigned();
 		smart_robot::set_color();
+		incoming_message_flag = 0;
 		steps++;
 	}
 
