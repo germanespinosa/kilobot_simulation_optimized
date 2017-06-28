@@ -9,9 +9,11 @@
 #define left 3
 #define sensor_lightsource 1
 #define radius 16
+#define second 32
 #define X 0
 #define Y 1
 #define T 2
+#define maxsize 200
 
 class robot
 {
@@ -34,9 +36,9 @@ public:
 	int timer;
 
 	//must implement the controller
-	void robot_controller();
+	void robot_controller(int step);
 	virtual void controller() = 0;
-
+	void robot::prerender();
 	virtual void sensing(int, int[], int[], int[], int[]) = 0;
 
 	//flag set to 1 when robot wants to transmitt
@@ -47,9 +49,17 @@ public:
 
 	virtual void *get_message(int channel) = 0;
 
-	double speed=1;
+	double speed=.5;
 
 	double battery = -1;
+
+	int size=16;
+
+	int step = 0;
+
+	double ch[maxsize];
+
+	bool collide=true;
 
 	virtual char *get_debug_info(char *buffer, char *rt) = 0;
 

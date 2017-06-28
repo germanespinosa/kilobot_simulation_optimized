@@ -23,7 +23,7 @@ using namespace std;
 #define twicePi  2 * PI
 #define radius 16 //radius of a robot
 #define p_control_execute .99 // probability of a controller executing its time step
-#define SKIPFRAMES 0
+#define SKIPFRAMES 100
 #define shuffles 20
 #define circledef 30
 // Global vars.
@@ -43,6 +43,7 @@ FILE *results;
 
 char log_buffer[255];
 char log_file_buffer[buffer_size];
+bool nomore = false;
 
 
 bool log_debug_info = true;
@@ -55,8 +56,6 @@ char shape_file_name[255] = "";
 int total_secs;
 int timelimit = 90 * 60;
 char rt[100];
-
-double ch[radius];
 
 int arena_width = 2400;
 int arena_height = 2400;
@@ -90,6 +89,7 @@ void log_info(char *s)
 //check to see if motion causes robots to collide
 int find_collisions(int id, double x, double y)
 {
+	if (!robots[id]->collide) return 0;
 	double two_r = 2 * radius;
 	int i;
 	if (x <= radius || x >= arena_width - radius || y <= radius || y >= arena_height - radius) return 1;
@@ -99,7 +99,7 @@ int find_collisions(int id, double x, double y)
 	double y_llim = y - two_r;
 	for (i = 0;i < num_robots;i++)
 	{
-		if (i != id)
+		if ((i != id) && (robots[i]->collide))
 		{
 			if (safe_distance[id*num_robots+i])
 			{
@@ -167,7 +167,7 @@ bool run_simulation_step()
 	static int lastrun = 0;
 	lastrun++;
 
-	total_secs = lastrun / radius;
+	total_secs = lastrun / second;
 
 	int secs = total_secs % 60;
 	int mins = (total_secs / 60) % 60;
@@ -183,7 +183,7 @@ bool run_simulation_step()
 		//run controller this time step with p_control_execute probability
 		if ((rand())<(int)(p_control_execute*RAND_MAX))
 		{
-			robots[i]->robot_controller();
+			robots[i]->robot_controller(lastrun);
 		}
 	}
 
@@ -282,12 +282,13 @@ bool run_simulation_step()
 		lastsec = secs;
 		if (!snapshotcounter || last)
 		{
-			result = true;
-			if (log_debug_info || last)
+			if ((log_debug_info || last) && (!nomore))
 			{
+				result = true;
 				char buffer[255];
 				if (last)
 				{
+					nomore = true;
 					for (int i = 0;i < num_robots;i++)
 						log_info(robots[i]->get_debug_info(buffer, "final"));
 				}else
@@ -306,11 +307,20 @@ bool run_simulation_step()
 // Drawing routine.
 void drawScene(void)
 {
+	static int frame = 0;
 	static int snapshottaken = 0;
 	static bool takesnapshot = false;
 	//draws the arena
 
 	takesnapshot = run_simulation_step();
+
+	if (frame != 0 && !takesnapshot)
+	{
+		frame--;
+		return;
+	}
+	frame = SKIPFRAMES;
+
 	glColor4f(0, 0, 0, 0);
 	glRectd(0, 0, arena_width, arena_height);
 
@@ -318,15 +328,15 @@ void drawScene(void)
 	glEnable(GL_LINE_SMOOTH);
 	glLineWidth(1.0);
 	glBegin(GL_LINES);
-	for (int i = 0; i <= radius; i++)
+	for (int j = 0;j < num_robots;j++)
 	{
-		for (int j = 0;j < num_robots;j++)
+		for (int i = 0; i <= robots[j]->size; i++)
 		{
 			glColor4f((GLfloat)robots[j]->color[0], (GLfloat)robots[j]->color[1], (GLfloat)robots[j]->color[2], 1.0);
-			glVertex2f((GLfloat)(robots[j]->pos[0]-i), (GLfloat)(robots[j]->pos[1]-ch[i]));
-			glVertex2f((GLfloat)(robots[j]->pos[0] -i), (GLfloat)(robots[j]->pos[1] + ch[i]));
-			glVertex2f((GLfloat)(robots[j]->pos[0] + i), (GLfloat)(robots[j]->pos[1] - ch[i]));
-			glVertex2f((GLfloat)(robots[j]->pos[0] + i), (GLfloat)(robots[j]->pos[1] + ch[i]));
+			glVertex2f((GLfloat)(robots[j]->pos[0]-i), (GLfloat)(robots[j]->pos[1]- robots[j]->ch[i]));
+			glVertex2f((GLfloat)(robots[j]->pos[0] -i), (GLfloat)(robots[j]->pos[1] + robots[j]->ch[i]));
+			glVertex2f((GLfloat)(robots[j]->pos[0] + i), (GLfloat)(robots[j]->pos[1] - robots[j]->ch[i]));
+			glVertex2f((GLfloat)(robots[j]->pos[0] + i), (GLfloat)(robots[j]->pos[1] + robots[j]->ch[i]));
 		}
 	}
 	for (int j = 0;j < num_robots;j++)
@@ -334,7 +344,7 @@ void drawScene(void)
 		glBegin(GL_LINES);
 		glColor4f(0, 0, 0, 1.0);
 		glVertex2f((GLfloat)robots[j]->pos[0], (GLfloat)robots[j]->pos[1]);
-		glVertex2f((GLfloat)(robots[j]->pos[0] + cos(robots[j]->pos[2])*radius), (GLfloat)(robots[j]->pos[1] + sin(robots[j]->pos[2])*radius));
+		glVertex2f((GLfloat)(robots[j]->pos[0] + cos(robots[j]->pos[2])* robots[j]->size), (GLfloat)(robots[j]->pos[1] + sin(robots[j]->pos[2])* robots[j]->size));
 		if (robots[j]->dest[0] != -1)
 		{
 			glBegin(GL_LINES);
@@ -567,7 +577,7 @@ int main(int argc, char **argv)
 		t= (unsigned int) time(NULL);
 	}
 
-	sprintf_s(log_buffer, "random seed: %d\n", t);
+	//sprintf_s(log_buffer, "random seed: %d\n", t);
 	
 	log_info(log_buffer);
 	srand(t);
@@ -588,51 +598,28 @@ int main(int argc, char **argv)
 
 	//do some open gl stuff
 
-	for (int i = 0;i < radius;i++)
+	if (!showscene)
 	{
-		ch[i] = sqrt(radius*radius - i*i);
-	}
-
-	if (showscene)
-	{
-		glutInit(&argc, argv);
-		glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
-		glutInitWindowSize(windowWidth, windowHeight);
-		glutInitWindowPosition(0, 0);
-
-		glMatrixMode(GL_PROJECTION);
-		glLoadIdentity();
-		glOrtho(0.0f, 1000, 1000, 0.0f, 0.0f, 1.0f);
-		glClearColor(1.0, 1.0, 1.0, 0.0);
-		glutCreateWindow("Kilobot simulator");
-
-		glutDisplayFunc(drawScene);
-		glutReshapeFunc(resize);
-		glutIdleFunc(OnIdle);
-		glutKeyboardFunc(keyInput);
-		glutMainLoop();
-	}
-	else {
-		while (total_secs<timelimit)
+		while (total_secs <= timelimit)
 		{
 			run_simulation_step();
 		}
-		glutInit(&argc, argv);
-		glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
-		glutInitWindowSize(windowWidth, windowHeight);
-		glutInitWindowPosition(0, 0);
-
-		glMatrixMode(GL_PROJECTION);
-		glLoadIdentity();
-		glOrtho(0.0f, 1000, 1000, 0.0f, 0.0f, 1.0f);
-		glClearColor(1.0, 1.0, 1.0, 0.0);
-		glutCreateWindow("Kilobot simulator");
-
-		glutDisplayFunc(drawScene);
-		glutReshapeFunc(resize);
-		glutIdleFunc(OnIdle);
-		glutKeyboardFunc(keyInput);
-		glutMainLoop();
 	}
+	glutInit(&argc, argv);
+	glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
+	glutInitWindowSize(windowWidth, windowHeight);
+	glutInitWindowPosition(0, 0);
+
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	glOrtho(0.0f, 1000, 1000, 0.0f, 0.0f, 1.0f);
+	glClearColor(1.0, 1.0, 1.0, 0.0);
+	glutCreateWindow("Kilobot simulator");
+
+	glutDisplayFunc(drawScene);
+	glutReshapeFunc(resize);
+	glutIdleFunc(OnIdle);
+	glutKeyboardFunc(keyInput);
+	glutMainLoop();
 	return 0;
 }

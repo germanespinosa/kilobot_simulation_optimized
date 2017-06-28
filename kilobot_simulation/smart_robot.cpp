@@ -203,6 +203,9 @@
 		battery = 360 * 60 * radius * (1 + gauss_rand(timer)*.2);
 		dest[0] = -1;
 		dest[1] = -1;
+		collide = false;
+		size = 16;
+		prerender();
 		for (int i = 0;i < disks;i++)
 			disks_status[i] = 0;
 	}
@@ -313,7 +316,7 @@
 		color[1] = 0;
 		color[2] = 1;
 		//let's check if somebody received the message, we have a possible seed
-		if (incoming_message_flag&touch)
+		if (incoming_message_flag & touch)
 		{
 			incoming_message_flag = incoming_message_flag & !touch;
 			if (data_in.action==touch_action::accepted)
@@ -325,7 +328,6 @@
 				return;
 			}
 		}
-
 		data_out.id = id;
 		data_out.action=touch_action::recruit_seed;
 		data_out.data1 = diskSize(closest_disk);
@@ -396,7 +398,7 @@
 
 	void smart_robot::checkIncoming()
 	{
-		incoming_message_flag = incoming_message_flag & !wifi;
+		incoming_message_flag = incoming_message_flag - wifi;
 		switch (wifi_in.action)
 		{
 		case wifi_action::bid:
@@ -505,6 +507,16 @@
 		prev_pos[T] = pos[T];
 	}
 
+	double thetaD(double t1, double t2)
+	{
+		double d = t1 - t2;
+		while (d < -2 * PI) d +=  2 * PI;
+		if (d < -PI) d = 2 * PI + d;
+		while (d > 2 * PI) d -= 2 * PI;
+		if (d > PI) d = 2 * PI - d;
+		return fabs(d);
+	}
+
 	double smart_robot::comm_out_criteria(int c, double x, double y, int sd)
 	{
 		switch (c)
@@ -512,10 +524,20 @@
 		case 1:
 		{
 			if (sd) return 0;
-			static double diameter = 2 * radius + 5;
+			static double diameter = 2 * radius + 10;
 			if (x < pos[0] - diameter || x > pos[0] + diameter || y < pos[1] - diameter || y > pos[1] + diameter) return 0;
 			double dist = robot::distance(pos[0], pos[1], x, y);
-			if (dist <= diameter) return dist; //robot within com range, put transmitting robots data in its data_in struct
+			if ((dist <= diameter) && (dist > diameter - 10))
+			{
+				double th = atan2(pos[1]-y, pos[0]-x);
+				th += PI;
+				//double th = atan2(y - pos[1], x - pos[0]);
+				double d = thetaD(th, pos[2]);
+				if (d<.5)
+					return dist; //robot within com range, put transmitting robots data in its data_in struct
+				else
+					return 0;
+			}
 			break;
 		}
 		case 2:
@@ -559,6 +581,6 @@
 	char *smart_robot::get_debug_info(char *buffer, char *rt)
 	{
 		sprintf_s(buffer,255, "%s, smart, %d, %4.2f, %4.2f, %d, %d, %4.2f, %4.2f\n", rt, id, pos[0], pos[1], smart_robot::behavior, closest_disk, dest[0], dest[1]);
+		*buffer = '\0';
 		return buffer;
 	}
-

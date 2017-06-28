@@ -12,6 +12,9 @@ class basic_robot : public robot
 		gradient
 	};
 
+
+	int last_change_step = -1;
+
 	int changecolor = 0;
 	behavior behavior = behavior::wandering; // 1 - wander 2 - gradient
 	int disk_id = 0;
@@ -55,6 +58,7 @@ class basic_robot : public robot
 					wait = data_in.int_data;
 					disk_id = data_in.data2;
 					disk_size = 0;
+					last_change_step = step;
 					behavior = behavior::waiting;
 					steps = 0;
 					break;
@@ -64,6 +68,7 @@ class basic_robot : public robot
 					motor_command = 4;
 					disk_size = data_in.data1 - 1;
 					disk_id = data_in.data2;
+					last_change_step = step;
 					behavior = behavior::gradient;
 					break;
 				}
@@ -72,6 +77,7 @@ class basic_robot : public robot
 					motor_command = 4;
 					last_touch = 0;
 					steps = 0;
+					last_change_step = step;
 					behavior = behavior::edgefalling;
 					break;
 				}
@@ -100,6 +106,7 @@ class basic_robot : public robot
 		{
 			if (steps >= wait + 10)
 			{
+				last_change_step = step;
 				behavior = behavior::gradient;
 			}
 			data_out.id = id;
@@ -176,6 +183,7 @@ class basic_robot : public robot
 					wait = data_in.int_data;
 					disk_id = data_in.data2;
 					disk_size = 0;
+					last_change_step = step;
 					behavior = behavior::waiting;
 					steps = 0;
 					break;
@@ -185,6 +193,7 @@ class basic_robot : public robot
 					motor_command = 4;
 					disk_size = data_in.data1 - 1;
 					disk_id = data_in.data2;
+					last_change_step = step;
 					behavior = behavior::gradient;
 					break;
 				}
@@ -193,6 +202,7 @@ class basic_robot : public robot
 					motor_command = 4;
 					last_touch = 0;
 					steps = 0;
+					last_change_step = step;
 					behavior = behavior::edgefalling;
 					break;
 				}
@@ -224,6 +234,7 @@ class basic_robot : public robot
 			}
 			if (last_touch > 250)//I lost the shape
 			{
+				last_change_step = step;
 				behavior = behavior::wandering;
 			}
 		}
@@ -245,6 +256,7 @@ class basic_robot : public robot
 		}
 		void robot::init()
 		{
+			prerender();
 			battery = 120 * 60 * radius * (1 + gauss_rand(timer)*.2);
 			dest[0] = -1;
 			dest[1] = -1;
@@ -254,7 +266,7 @@ class basic_robot : public robot
 		double robot::comm_out_criteria(int c, double x, double y, int sd) //stardard circular transmission area
 		{
 			if (c != 1 || sd) return 0;
-			static double diameter = 2 * radius + 5;
+			static double diameter = 2 * radius + 10;
 			if (x < pos[0] - diameter || x > pos[0] + diameter || y < pos[1] - diameter || y > pos[1] + diameter) return 0;
 			double dist = robot::distance(pos[0], pos[1], x, y);
 			if (dist <= diameter) return dist; //robot within com range, put transmitting robots data in its data_in struct
@@ -277,7 +289,7 @@ class basic_robot : public robot
 		}
 		char *robot::get_debug_info(char *buffer, char *rt)
 		{
-			sprintf_s(buffer, 255, "%s, basic, %d, %4.2f, %4.2f, %d, %s, %d, %d\n", rt, id, pos[0], pos[1], behavior, seed ? "true" : "false", disk_id, disk_size);
+			sprintf_s(buffer, 255, "%4.2f, %4.2f, %d, %d\n", pos[0], pos[1], behavior, last_change_step);
 			return buffer;
 		}
 

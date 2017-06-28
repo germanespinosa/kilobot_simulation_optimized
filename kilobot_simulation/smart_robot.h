@@ -7,7 +7,6 @@
 
 #define time_out 100
 
-
 #define forced_reshuffle 3000
 #define signal_basic 65536
 #define signal_smart 32768
@@ -19,7 +18,7 @@
 
 
 #define min_movement 40
-#define tolerance 5
+#define tolerance 16
 #define PI 3.14159265358979324
 
 
@@ -53,8 +52,7 @@ class smart_robot : public robot
 	static int bases ;
 	static int bases_x[4] ;
 	static int bases_y[4] ;
-
-
+	
 	//comms
 	//received data goes here
 	touch_data data_in;

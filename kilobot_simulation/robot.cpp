@@ -1,8 +1,9 @@
 #include <iostream>
 #include "robot.h"
 
-void robot::robot_controller()
+void robot::robot_controller(int step)
 {
+	robot::step = step;
 	if (battery > 0)
 	{
 		timer++;
@@ -30,7 +31,6 @@ void robot::robot_controller()
 
 void robot::robot_init(double x, double y, double t)
 {
-	//initalize robot variables
 	pos[0] = x;
 	pos[1] = y;
 	pos[2] = t;
@@ -42,4 +42,13 @@ void robot::robot_init(double x, double y, double t)
 	rand();
 	motor_error = robot::gauss_rand(timer)*motion_error_std;
 	init();
+}
+
+void robot::prerender()
+{
+	//initalize robot variables
+	for (int i = 0;i < size;i++)
+	{
+		ch[i] = sqrt(size*size - i*i);
+	}
 }

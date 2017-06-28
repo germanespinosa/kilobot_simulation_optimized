@@ -30,6 +30,12 @@
     <ClInclude Include="smart_robot.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="kilobot.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="kilolib.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -53,5 +59,14 @@
     <ClCompile Include="simplebmp.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="kilobot.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="shape.cfg" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="shapes.txt" />
   </ItemGroup>
 </Project>

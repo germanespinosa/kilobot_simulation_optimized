@@ -29,7 +29,6 @@ Global
 		{925D1517-7736-40E7-A03E-8A5B4BC13DFC}.Release|x64.ActiveCfg = Release|x64
 		{925D1517-7736-40E7-A03E-8A5B4BC13DFC}.Release|x64.Build.0 = Release|x64
 		{925D1517-7736-40E7-A03E-8A5B4BC13DFC}.Release|x86.ActiveCfg = Release|Win32
-		{925D1517-7736-40E7-A03E-8A5B4BC13DFC}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
